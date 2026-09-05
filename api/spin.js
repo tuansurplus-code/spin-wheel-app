@@ -11,7 +11,7 @@ module.exports = async function handler(req, res) {
     const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpa3h3amdra3d4a2NvcmVqaml5Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4ODU5NDM0MSwiZXhwIjoyMTA0MTcwMzQxfQ.4KPdNr4vfGKw2t227SQTsJGTgwprJPCY8YfrLHEeYRY';
 
     const response = await fetch(
-      `${SUPABASE_URL}/rest/v1/gifts?select=*&active=eq.true&stock=gt.0&order=id.asc`,
+      `${SUPABASE_URL}/rest/v1/gifts?select=*&active=eq.true&stock=gt.0&order=created_at.asc`,
       {
         method: 'GET',
         headers: {
@@ -30,7 +30,8 @@ module.exports = async function handler(req, res) {
 
     const items = rawItems.map(g => ({
       ...g,
-      name: g.label || g.name || 'Prize'
+      name: g.label || 'Prize',
+      label: g.label || 'Prize'
     }));
 
     const totalWeight = items.reduce((acc, item) => acc + Number(item.weight || 10), 0);
