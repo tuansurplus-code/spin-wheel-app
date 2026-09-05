@@ -103,28 +103,53 @@
 
     function getItemTitle(item) {
       if (!item) return 'Prize';
-      return item.title || item.name || item.label || item.gift_name || 'Prize';
+      return item.prize_name || item.title || item.name || item.label || item.gift_name || 'Prize';
     }
 
     async function initApp() {
       try {
-        const res = await fetch('/api/admin', { headers: { 'x-admin-auth': 'admin123' } }).catch(() => null);
-        const data = await res?.json();
+        let loaded = false;
 
-        if (data && data.success) {
-          items = data.gifts || [];
-          formFields = data.form_fields || [];
-          
-          const limitSetting = data.settings?.find(s => s.key === 'spins_per_day');
-          const speedSetting = data.settings?.find(s => s.key === 'spin_speed');
-          
-          if (limitSetting) spinsPerDay = Number(limitSetting.value);
-          if (speedSetting) spinDuration = Number(speedSetting.value) * 1000;
+        // 1. Try public endpoint first
+        try {
+          const res = await fetch('/api/items');
+          if (res.ok) {
+            const data = await res.json();
+            const fetchedItems = Array.isArray(data) ? data : (data.gifts || data.items || []);
+            if (fetchedItems.length > 0) {
+              items = fetchedItems;
+              formFields = data.form_fields || [];
+              loaded = true;
+            }
+          }
+        } catch (e) {
+          console.warn('Public items API failed, trying admin API fallback...');
+        }
 
+        // 2. Fall back to admin endpoint if public fetch returned empty/failed
+        if (!loaded) {
+          const res = await fetch('/api/admin', { headers: { 'x-admin-auth': 'admin123' } });
+          const data = await res.json();
+          if (data && data.success) {
+            items = data.gifts || [];
+            formFields = data.form_fields || [];
+
+            const limitSetting = data.settings?.find(s => s.key === 'spins_per_day');
+            const speedSetting = data.settings?.find(s => s.key === 'spin_speed');
+            
+            if (limitSetting) spinsPerDay = Number(limitSetting.value);
+            if (speedSetting) spinDuration = Number(speedSetting.value) * 1000;
+          }
+        }
+
+        if (items.length > 0) {
           drawWheel();
           checkRateLimit();
+        } else {
+          document.getElementById('statusMsg').innerText = "No prizes available on the wheel.";
         }
       } catch (err) {
+        console.error(err);
         document.getElementById('statusMsg').innerText = "Failed to load wheel setup.";
       }
     }
@@ -175,7 +200,7 @@
     function pickWeightedWinner() {
       const pool = [];
       items.forEach((item, index) => {
-        const weight = Number(item.probability ?? 10);
+        const weight = Number(item.weight ?? item.probability ?? 10);
         for (let i = 0; i < weight; i++) pool.push(index);
       });
       if (pool.length === 0) return 0;
