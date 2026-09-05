@@ -1,12 +1,8 @@
 module.exports = async function handler(req, res) {
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
+  if (req.method === 'OPTIONS') return res.status(200).end();
 
   const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
-
-  const authHeader = req.headers['x-admin-auth'];
-  if (authHeader !== ADMIN_PASSWORD) {
+  if (req.headers['x-admin-auth'] !== ADMIN_PASSWORD) {
     return res.status(401).json({ success: false, error: 'Unauthorized: Invalid admin password.' });
   }
 
@@ -21,111 +17,89 @@ module.exports = async function handler(req, res) {
   };
 
   try {
-    // GET: Fetch gifts & winners
+    // GET: Load gifts, winners, form fields, and settings
     if (req.method === 'GET') {
-      const [giftsRes, winnersRes] = await Promise.all([
+      const [giftsRes, winnersRes, fieldsRes, settingsRes] = await Promise.all([
         fetch(`${SUPABASE_URL}/rest/v1/gifts?select=*&order=id.asc`, { headers }),
-        fetch(`${SUPABASE_URL}/rest/v1/winners?select=*&order=created_at.desc`, { headers })
+        fetch(`${SUPABASE_URL}/rest/v1/winners?select=*&order=created_at.desc`, { headers }),
+        fetch(`${SUPABASE_URL}/rest/v1/form_fields?select=*&order=created_at.asc`, { headers }),
+        fetch(`${SUPABASE_URL}/rest/v1/settings?select=*`, { headers })
       ]);
-
-      const gifts = await giftsRes.json();
-      const winners = await winnersRes.json();
 
       return res.status(200).json({
         success: true,
-        gifts: Array.isArray(gifts) ? gifts : [],
-        winners: Array.isArray(winners) ? winners : []
+        gifts: await giftsRes.json(),
+        winners: await winnersRes.json(),
+        form_fields: await fieldsRes.json(),
+        settings: await settingsRes.json()
       });
     }
 
-    // POST: Add new prize
+    let body = req.body;
+    if (typeof body === 'string') {
+      try { body = JSON.parse(body); } catch (e) { body = {}; }
+    }
+
+    const { action } = body || {};
+
+    // Form Field CRUD
+    if (action === 'save_field') {
+      const { id, field_label, field_name, field_type, is_required } = body;
+      const method = id ? 'PATCH' : 'POST';
+      const url = id ? `${SUPABASE_URL}/rest/v1/form_fields?id=eq.${id}` : `${SUPABASE_URL}/rest/v1/form_fields`;
+
+      const resp = await fetch(url, {
+        method,
+        headers,
+        body: JSON.stringify({
+          field_label,
+          field_name: field_name || field_label.toLowerCase().replace(/\s+/g, '_'),
+          field_type: field_type || 'text',
+          is_required: is_required ?? true
+        })
+      });
+      return res.status(200).json({ success: resp.ok });
+    }
+
+    if (action === 'delete_field') {
+      const resp = await fetch(`${SUPABASE_URL}/rest/v1/form_fields?id=eq.${body.id}`, { method: 'DELETE', headers });
+      return res.status(200).json({ success: resp.ok });
+    }
+
+    // Save Settings (Spins per day & Speed)
+    if (action === 'save_settings') {
+      const { spins_per_day, spin_speed } = body;
+      await Promise.all([
+        fetch(`${SUPABASE_URL}/rest/v1/settings?key=eq.spins_per_day`, { method: 'PATCH', headers, body: JSON.stringify({ value: String(spins_per_day) }) }),
+        fetch(`${SUPABASE_URL}/rest/v1/settings?key=eq.spin_speed`, { method: 'PATCH', headers, body: JSON.stringify({ value: String(spin_speed) }) })
+      ]);
+      return res.status(200).json({ success: true });
+    }
+
+    // Prize CRUD
     if (req.method === 'POST') {
-      let body = req.body;
-      if (typeof body === 'string') {
-        try { body = JSON.parse(body); } catch (e) { body = {}; }
-      }
-
-      const { name, stock, color } = body || {};
-
-      if (!name) {
-        return res.status(400).json({ success: false, error: 'Prize name is required.' });
-      }
-
+      const { name, stock, color, probability } = body;
       const addRes = await fetch(`${SUPABASE_URL}/rest/v1/gifts`, {
         method: 'POST',
         headers,
-        body: JSON.stringify({
-          name: name,
-          stock: Number(stock ?? 10),
-          color: color || '#3b82f6',
-          active: true
-        })
+        body: JSON.stringify({ name, stock: Number(stock ?? 10), color: color || '#3b82f6', probability: Number(probability ?? 10), active: true })
       });
-
-      if (!addRes.ok) {
-        const err = await addRes.json();
-        return res.status(500).json({ success: false, error: err });
-      }
-
-      return res.status(200).json({ success: true, message: 'Prize added successfully!' });
+      return res.status(200).json({ success: addRes.ok });
     }
 
-    // PATCH: Edit prize
     if (req.method === 'PATCH') {
-      let body = req.body;
-      if (typeof body === 'string') {
-        try { body = JSON.parse(body); } catch (e) { body = {}; }
-      }
-
-      const { gift_id, name, stock, color } = body || {};
-
-      if (!gift_id) {
-        return res.status(400).json({ success: false, error: 'Invalid gift_id.' });
-      }
-
-      const updatePayload = {};
-      if (name !== undefined) updatePayload.name = name;
-      if (stock !== undefined) updatePayload.stock = Number(stock);
-      if (color !== undefined) updatePayload.color = color;
-
+      const { gift_id, name, stock, color, probability } = body;
       const updateRes = await fetch(`${SUPABASE_URL}/rest/v1/gifts?id=eq.${gift_id}`, {
         method: 'PATCH',
         headers,
-        body: JSON.stringify(updatePayload)
+        body: JSON.stringify({ name, stock: Number(stock), color, probability: Number(probability) })
       });
-
-      if (!updateRes.ok) {
-        const err = await updateRes.json();
-        return res.status(500).json({ success: false, error: err });
-      }
-
-      return res.status(200).json({ success: true, message: 'Prize updated successfully.' });
+      return res.status(200).json({ success: updateRes.ok });
     }
 
-    // DELETE: Delete prize
     if (req.method === 'DELETE') {
-      let body = req.body;
-      if (typeof body === 'string') {
-        try { body = JSON.parse(body); } catch (e) { body = {}; }
-      }
-
-      const { gift_id } = body || {};
-
-      if (!gift_id) {
-        return res.status(400).json({ success: false, error: 'Invalid gift_id.' });
-      }
-
-      const deleteRes = await fetch(`${SUPABASE_URL}/rest/v1/gifts?id=eq.${gift_id}`, {
-        method: 'DELETE',
-        headers
-      });
-
-      if (!deleteRes.ok) {
-        const err = await deleteRes.json();
-        return res.status(500).json({ success: false, error: err });
-      }
-
-      return res.status(200).json({ success: true, message: 'Prize deleted successfully.' });
+      const deleteRes = await fetch(`${SUPABASE_URL}/rest/v1/gifts?id=eq.${body.gift_id}`, { method: 'DELETE', headers });
+      return res.status(200).json({ success: deleteRes.ok });
     }
 
     return res.status(405).json({ success: false, error: 'Method not allowed' });
