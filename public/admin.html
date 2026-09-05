@@ -7,360 +7,159 @@
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <style>
     body { background-color: #0f172a; color: #f8fafc; font-family: system-ui, sans-serif; }
-    .tab-btn.active { border-bottom: 3px solid #6366f1; color: #818cf8; font-weight: 700; }
+    /* Global fix to ensure all text inside inputs is solid black */
+    input, select, textarea {
+      color: #0f172a !important;
+      background-color: #f1f5f9 !important;
+    }
   </style>
 </head>
-<body class="min-h-screen p-6 flex flex-col items-center justify-start">
+<body class="p-6 max-w-5xl mx-auto space-y-8">
 
-  <!-- Login Modal -->
-  <div id="loginModal" class="w-full max-w-sm bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-2xl text-center my-auto">
-    <h1 class="text-2xl font-bold text-indigo-400 mb-2">Admin Login</h1>
-    <form onsubmit="handleLogin(event)" class="space-y-4">
-      <input type="password" id="adminPassInput" placeholder="Enter Password" required class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-center focus:outline-none">
-      <button type="submit" class="w-full py-2 bg-indigo-600 hover:bg-indigo-500 font-bold rounded-lg text-white">Login</button>
-    </form>
-    <p id="loginError" class="mt-3 text-xs text-rose-400"></p>
-  </div>
+  <header class="flex justify-between items-center border-b border-slate-700 pb-4">
+    <div>
+      <h1 class="text-3xl font-extrabold text-indigo-400">Admin Dashboard</h1>
+      <p class="text-slate-400 text-sm">Manage prizes, probabilities, and claim form fields</p>
+    </div>
+    <button onclick="fetchAdminData()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 font-bold text-white rounded-lg transition">
+      Refresh Data
+    </button>
+  </header>
 
-  <!-- Admin Panel -->
-  <div id="adminContainer" class="hidden w-full max-w-6xl space-y-6">
-    <div class="flex justify-between items-center border-b border-slate-700 pb-4">
+  <!-- PRIZES / GIFTS MANAGEMENT SECTION -->
+  <section class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl space-y-4">
+    <h2 class="text-xl font-bold text-white border-b border-slate-700 pb-2">Wheel Prizes</h2>
+    
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-sm text-slate-300">
+        <thead class="bg-slate-700 text-slate-200 uppercase text-xs">
+          <tr>
+            <th class="p-3">ID</th>
+            <th class="p-3">Prize Name</th>
+            <th class="p-3">Probability (Weight)</th>
+            <th class="p-3">Color</th>
+          </tr>
+        </thead>
+        <tbody id="prizesTableBody" class="divide-y divide-slate-700">
+          <tr><td colspan="4" class="p-4 text-center">Loading prizes...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- CLAIM FORM FIELDS MANAGEMENT SECTION -->
+  <section class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl space-y-4">
+    <h2 class="text-xl font-bold text-white border-b border-slate-700 pb-2">Claim Form Fields</h2>
+    
+    <div id="formFieldsContainer" class="space-y-3">
+      <p class="text-slate-400 text-sm">Loading fields...</p>
+    </div>
+  </section>
+
+  <!-- GLOBAL WHEEL SETTINGS SECTION -->
+  <section class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl space-y-4">
+    <h2 class="text-xl font-bold text-white border-b border-slate-700 pb-2">Wheel Settings</h2>
+    
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div>
-        <h1 class="text-3xl font-extrabold text-indigo-400">Spin & Win Admin</h1>
-        <p class="text-slate-400 text-sm">Control panel and prize manager</p>
+        <label class="block text-xs font-semibold text-slate-300 uppercase mb-1">Spins Allowed Per User / Day</label>
+        <input type="number" id="settingSpinsPerDay" class="w-full px-3 py-2 text-slate-900 font-bold bg-slate-100 rounded border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500">
       </div>
-      <button onclick="handleLogout()" class="px-3 py-1.5 bg-rose-600 hover:bg-rose-500 font-semibold rounded-lg text-xs">Logout</button>
-    </div>
-
-    <!-- Navigation Tabs -->
-    <div class="flex space-x-6 border-b border-slate-700 text-slate-400 text-sm">
-      <button id="tabNavDashboard" onclick="switchTab('dashboard')" class="tab-btn pb-3 px-1 active">Dashboard</button>
-      <button id="tabNavConfigure" onclick="switchTab('configure')" class="tab-btn pb-3 px-1">Configure Wheel</button>
-      <button id="tabNavFields" onclick="switchTab('fields')" class="tab-btn pb-3 px-1">Form Gathering</button>
-      <button id="tabNavWinners" onclick="switchTab('winners')" class="tab-btn pb-3 px-1">Winner Record</button>
-    </div>
-
-    <!-- TAB 1: DASHBOARD -->
-    <div id="tabDashboard" class="space-y-6">
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl">
-          <p class="text-xs font-semibold text-slate-400 uppercase">Today's Attempts</p>
-          <p id="statToday" class="text-4xl font-extrabold text-indigo-400 mt-2">0</p>
-        </div>
-        <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl">
-          <p class="text-xs font-semibold text-slate-400 uppercase">Total Claims Recorded</p>
-          <p id="statTotal" class="text-4xl font-extrabold text-emerald-400 mt-2">0</p>
-        </div>
-        <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl">
-          <p class="text-xs font-semibold text-slate-400 uppercase">Active Wheel Items</p>
-          <p id="statItems" class="text-4xl font-extrabold text-amber-400 mt-2">0</p>
-        </div>
+      <div>
+        <label class="block text-xs font-semibold text-slate-300 uppercase mb-1">Spin Speed (Seconds)</label>
+        <input type="number" id="settingSpinSpeed" class="w-full px-3 py-2 text-slate-900 font-bold bg-slate-100 rounded border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500">
       </div>
     </div>
-
-    <!-- TAB 2: CONFIGURE WHEEL -->
-    <div id="tabConfigure" class="hidden space-y-6">
-      <!-- Global Wheel Controls -->
-      <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl space-y-4">
-        <h3 class="text-lg font-bold text-white">Global Wheel Settings</h3>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label class="block text-xs text-slate-400 mb-1">Spin Limit (Per User in 24 Hours)</label>
-            <input type="number" id="settingSpinsDay" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded text-white" min="1">
-          </div>
-          <div>
-            <label class="block text-xs text-slate-400 mb-1">Spinning Speed / Duration (Seconds)</label>
-            <input type="number" id="settingSpeed" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded text-white" min="2" max="15">
-          </div>
-        </div>
-        <button onclick="saveGlobalSettings()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 font-bold text-white rounded text-xs">Save Settings</button>
-      </div>
-
-      <!-- Item Management -->
-      <div class="flex justify-between items-center">
-        <h3 class="text-lg font-bold text-white">Prizes & Probabilities</h3>
-        <button onclick="openAddModal()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 font-bold text-white rounded text-sm">+ Add Prize</button>
-      </div>
-
-      <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl overflow-x-auto">
-        <table class="w-full text-left text-sm text-slate-300">
-          <thead class="text-xs uppercase bg-slate-900 text-slate-400">
-            <tr>
-              <th class="p-3">Color</th>
-              <th class="p-3">Prize Name</th>
-              <th class="p-3">Stock</th>
-              <th class="p-3">Probability (%)</th>
-              <th class="p-3 text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody id="giftsTableBody" class="divide-y divide-slate-700"></tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- TAB 3: FORM GATHERING CONFIGURATION -->
-    <div id="tabFields" class="hidden space-y-6">
-      <div class="flex justify-between items-center">
-        <h2 class="text-xl font-bold text-white">Configure User Data Gathering Form</h2>
-        <button onclick="openFieldModal()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 font-bold text-white rounded text-sm">+ Add Field</button>
-      </div>
-      <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl overflow-x-auto">
-        <table class="w-full text-left text-sm text-slate-300">
-          <thead class="text-xs uppercase bg-slate-900 text-slate-400">
-            <tr>
-              <th class="p-3">Field Label</th>
-              <th class="p-3">Data Key</th>
-              <th class="p-3">Data Type</th>
-              <th class="p-3">Required</th>
-              <th class="p-3 text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody id="fieldsTableBody" class="divide-y divide-slate-700"></tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- TAB 4: WINNERS RECORD -->
-    <div id="tabWinners" class="hidden space-y-6">
-      <h2 class="text-xl font-bold text-white">All Claim History</h2>
-      <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl overflow-x-auto">
-        <table class="w-full text-left text-sm text-slate-300">
-          <thead class="text-xs uppercase bg-slate-900 text-slate-400">
-            <tr>
-              <th class="p-3">Date</th>
-              <th class="p-3">Name</th>
-              <th class="p-3">Email</th>
-              <th class="p-3">Phone</th>
-              <th class="p-3">Prize</th>
-            </tr>
-          </thead>
-          <tbody id="winnersTableBody" class="divide-y divide-slate-700"></tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-
-  <!-- PRIZE MODAL -->
-  <div id="prizeModal" class="hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 z-50">
-    <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 w-full max-w-md space-y-4">
-      <h3 id="modalTitle" class="text-xl font-bold text-white">Add Prize</h3>
-      <form onsubmit="handlePrizeSave(event)" class="space-y-4">
-        <input type="hidden" id="modalGiftId">
-        <input type="text" id="modalName" placeholder="Prize Name" required class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded text-white">
-        <input type="number" id="modalStock" placeholder="Stock" required class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded text-white">
-        <input type="number" id="modalProb" placeholder="Winning Probability %" required class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded text-white">
-        <input type="color" id="modalColor" value="#3b82f6" class="h-10 w-full bg-slate-900 border border-slate-700 rounded cursor-pointer">
-        <div class="flex justify-end space-x-3">
-          <button type="button" onclick="document.getElementById('prizeModal').classList.add('hidden')" class="px-4 py-2 bg-slate-700 text-slate-200 rounded">Cancel</button>
-          <button type="submit" class="px-4 py-2 bg-indigo-600 font-bold text-white rounded">Save</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- FIELD MODAL -->
-  <div id="fieldModal" class="hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 z-50">
-    <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 w-full max-w-md space-y-4">
-      <h3 class="text-xl font-bold text-white">Form Field Configuration</h3>
-      <form onsubmit="handleFieldSave(event)" class="space-y-4">
-        <input type="hidden" id="fieldId">
-        <input type="text" id="fieldLabel" placeholder="Field Label (e.g. Phone Number)" required class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded text-white">
-        <select id="fieldType" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded text-white">
-          <option value="text">Text Input</option>
-          <option value="email">Email</option>
-          <option value="tel">Phone / Tel</option>
-          <option value="number">Number</option>
-        </select>
-        <label class="flex items-center space-x-2 text-sm text-slate-300">
-          <input type="checkbox" id="fieldReq" checked> <span>Is Required?</span>
-        </label>
-        <div class="flex justify-end space-x-3">
-          <button type="button" onclick="document.getElementById('fieldModal').classList.add('hidden')" class="px-4 py-2 bg-slate-700 text-slate-200 rounded">Cancel</button>
-          <button type="submit" class="px-4 py-2 bg-indigo-600 font-bold text-white rounded">Save Field</button>
-        </div>
-      </form>
-    </div>
-  </div>
+  </section>
 
   <script>
-    let adminToken = sessionStorage.getItem('adminToken') || '';
-    let globalData = {};
+    let adminAuthHeader = 'admin123'; // Replace with your auth header key if applicable
 
-    function handleLogin(e) {
-      e.preventDefault();
-      adminToken = document.getElementById('adminPassInput').value;
-      sessionStorage.setItem('adminToken', adminToken);
-      loadData();
+    // Fallback extraction to ensure prize names display regardless of DB column name
+    function getPrizeTitle(item) {
+      if (!item) return 'N/A';
+      return item.title || item.gift_name || item.name || item.label || item.prize_name || 'Unnamed Prize';
     }
 
-    function handleLogout() {
-      sessionStorage.removeItem('adminToken');
-      location.reload();
+    async function fetchAdminData() {
+      try {
+        const res = await fetch('/api/admin', { headers: { 'x-admin-auth': adminAuthHeader } });
+        const data = await res.json();
+
+        if (data && data.success) {
+          renderPrizes(data.gifts || []);
+          renderFormFields(data.form_fields || []);
+          renderSettings(data.settings || []);
+        } else {
+          alert('Failed to fetch admin data.');
+        }
+      } catch (err) {
+        console.error('Error loading admin panel:', err);
+      }
     }
 
-    function switchTab(tab) {
-      ['Dashboard', 'Configure', 'Fields', 'Winners'].forEach(t => {
-        document.getElementById(`tab${t}`).classList.add('hidden');
-        document.getElementById(`tabNav${t}`).classList.remove('active');
-      });
-      const capitalized = tab.charAt(0).toUpperCase() + tab.slice(1);
-      document.getElementById(`tab${capitalized}`).classList.remove('hidden');
-      document.getElementById(`tabNav${capitalized}`).classList.add('active');
-    }
-
-    async function loadData() {
-      const res = await fetch('/api/admin', { headers: { 'x-admin-auth': adminToken } });
-      if (res.status === 401) {
-        document.getElementById('loginError').innerText = "Incorrect Password";
+    function renderPrizes(gifts) {
+      const tbody = document.getElementById('prizesTableBody');
+      if (gifts.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" class="p-4 text-center">No prizes found in database.</td></tr>';
         return;
       }
-      const data = await res.json();
-      globalData = data;
 
-      document.getElementById('loginModal').classList.add('hidden');
-      document.getElementById('adminContainer').classList.remove('hidden');
-
-      // Fill settings
-      const spinsSetting = data.settings.find(s => s.key === 'spins_per_day');
-      const speedSetting = data.settings.find(s => s.key === 'spin_speed');
-      if (spinsSetting) document.getElementById('settingSpinsDay').value = spinsSetting.value;
-      if (speedSetting) document.getElementById('settingSpeed').value = speedSetting.value;
-
-      renderGifts(data.gifts);
-      renderFields(data.form_fields);
-      renderWinners(data.winners);
-    }
-
-    function renderGifts(gifts) {
-      document.getElementById('giftsTableBody').innerHTML = gifts.map(g => `
-        <tr>
-          <td class="p-3"><div class="w-5 h-5 rounded-full" style="background:${g.color || '#3b82f6'}"></div></td>
-          <td class="p-3 font-semibold">${g.name}</td>
-          <td class="p-3">${g.stock}</td>
-          <td class="p-3">${g.probability ?? 10}%</td>
-          <td class="p-3 text-right space-x-2">
-            <button onclick="openEditModal('${g.id}')" class="px-2 py-1 bg-indigo-600 rounded text-xs">Edit</button>
-            <button onclick="deletePrize('${g.id}')" class="px-2 py-1 bg-rose-600 rounded text-xs">Delete</button>
+      tbody.innerHTML = gifts.map(item => `
+        <tr class="hover:bg-slate-750">
+          <td class="p-3 text-slate-400">${item.id || '-'}</td>
+          <td class="p-3">
+            <input type="text" value="${getPrizeTitle(item)}" 
+              class="w-full px-3 py-1.5 text-slate-900 font-bold bg-slate-100 rounded border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+          </td>
+          <td class="p-3">
+            <input type="number" value="${item.probability ?? 10}" 
+              class="w-24 px-3 py-1.5 text-slate-900 font-bold bg-slate-100 rounded border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+          </td>
+          <td class="p-3">
+            <input type="color" value="${item.color || '#3b82f6'}" class="h-9 w-14 rounded cursor-pointer border border-slate-300">
           </td>
         </tr>
       `).join('');
     }
 
-    function renderFields(fields) {
-      document.getElementById('fieldsTableBody').innerHTML = fields.map(f => `
-        <tr>
-          <td class="p-3 font-semibold">${f.field_label}</td>
-          <td class="p-3 text-slate-400 font-mono">${f.field_name}</td>
-          <td class="p-3">${f.field_type}</td>
-          <td class="p-3">${f.is_required ? 'Yes' : 'No'}</td>
-          <td class="p-3 text-right">
-            <button onclick="deleteField('${f.id}')" class="px-2 py-1 bg-rose-600 rounded text-xs">Delete</button>
-          </td>
-        </tr>
+    function renderFormFields(fields) {
+      const container = document.getElementById('formFieldsContainer');
+      if (fields.length === 0) {
+        container.innerHTML = '<p class="text-slate-400 text-sm">No custom fields defined.</p>';
+        return;
+      }
+
+      container.innerHTML = fields.map(field => `
+        <div class="flex items-center gap-3 bg-slate-750 p-3 rounded-xl border border-slate-700">
+          <div class="flex-1">
+            <label class="block text-xs text-slate-400 mb-1">Field Label</label>
+            <input type="text" value="${field.field_label || ''}" 
+              class="w-full px-3 py-1.5 text-slate-900 font-bold bg-slate-100 rounded border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+          </div>
+          <div class="w-36">
+            <label class="block text-xs text-slate-400 mb-1">Type</label>
+            <select class="w-full px-3 py-1.5 text-slate-900 font-bold bg-slate-100 rounded border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+              <option value="text" ${field.field_type === 'text' ? 'selected' : ''}>Text</option>
+              <option value="email" ${field.field_type === 'email' ? 'selected' : ''}>Email</option>
+              <option value="tel" ${field.field_type === 'tel' ? 'selected' : ''}>Phone</option>
+              <option value="number" ${field.field_type === 'number' ? 'selected' : ''}>Number</option>
+            </select>
+          </div>
+        </div>
       `).join('');
     }
 
-    function renderWinners(winners) {
-      document.getElementById('winnersTableBody').innerHTML = winners.map(w => `
-        <tr>
-          <td class="p-3 text-xs">${new Date(w.created_at).toLocaleString()}</td>
-          <td class="p-3 font-semibold">${w.user_name || w.name || 'N/A'}</td>
-          <td class="p-3">${w.user_email || w.email || 'N/A'}</td>
-          <td class="p-3">${w.user_phone || w.phone || 'N/A'}</td>
-          <td class="p-3 text-indigo-300 font-bold">${w.gift_label}</td>
-        </tr>
-      `).join('');
+    function renderSettings(settings) {
+      const limitSetting = settings.find(s => s.key === 'spins_per_day');
+      const speedSetting = settings.find(s => s.key === 'spin_speed');
+
+      if (limitSetting) document.getElementById('settingSpinsPerDay').value = limitSetting.value;
+      if (speedSetting) document.getElementById('settingSpinSpeed').value = speedSetting.value;
     }
 
-    async function saveGlobalSettings() {
-      const spins = document.getElementById('settingSpinsDay').value;
-      const speed = document.getElementById('settingSpeed').value;
-      await fetch('/api/admin', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-admin-auth': adminToken },
-        body: JSON.stringify({ action: 'save_settings', spins_per_day: spins, spin_speed: speed })
-      });
-      alert('Settings saved!');
-    }
-
-    function openAddModal() {
-      document.getElementById('modalGiftId').value = "";
-      document.getElementById('modalName').value = "";
-      document.getElementById('modalStock').value = "10";
-      document.getElementById('modalProb').value = "10";
-      document.getElementById('prizeModal').classList.remove('hidden');
-    }
-
-    function openEditModal(id) {
-      const g = globalData.gifts.find(item => String(item.id) === String(id));
-      document.getElementById('modalGiftId').value = g.id;
-      document.getElementById('modalName').value = g.name;
-      document.getElementById('modalStock').value = g.stock;
-      document.getElementById('modalProb').value = g.probability ?? 10;
-      document.getElementById('modalColor').value = g.color || "#3b82f6";
-      document.getElementById('prizeModal').classList.remove('hidden');
-    }
-
-    async function handlePrizeSave(e) {
-      e.preventDefault();
-      const id = document.getElementById('modalGiftId').value;
-      const body = {
-        gift_id: id,
-        name: document.getElementById('modalName').value,
-        stock: document.getElementById('modalStock').value,
-        probability: document.getElementById('modalProb').value,
-        color: document.getElementById('modalColor').value
-      };
-
-      await fetch('/api/admin', {
-        method: id ? 'PATCH' : 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-admin-auth': adminToken },
-        body: JSON.stringify(body)
-      });
-      document.getElementById('prizeModal').classList.add('hidden');
-      loadData();
-    }
-
-    async function deletePrize(gift_id) {
-      if (!confirm('Delete prize?')) return;
-      await fetch('/api/admin', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json', 'x-admin-auth': adminToken },
-        body: JSON.stringify({ gift_id })
-      });
-      loadData();
-    }
-
-    function openFieldModal() {
-      document.getElementById('fieldModal').classList.remove('hidden');
-    }
-
-    async function handleFieldSave(e) {
-      e.preventDefault();
-      await fetch('/api/admin', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-admin-auth': adminToken },
-        body: JSON.stringify({
-          action: 'save_field',
-          field_label: document.getElementById('fieldLabel').value,
-          field_type: document.getElementById('fieldType').value,
-          is_required: document.getElementById('fieldReq').checked
-        })
-      });
-      document.getElementById('fieldModal').classList.add('hidden');
-      loadData();
-    }
-
-    async function deleteField(id) {
-      await fetch('/api/admin', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-admin-auth': adminToken },
-        body: JSON.stringify({ action: 'delete_field', id })
-      });
-      loadData();
-    }
-
-    if (adminToken) loadData();
+    // Initialize on load
+    fetchAdminData();
   </script>
 </body>
 </html>
