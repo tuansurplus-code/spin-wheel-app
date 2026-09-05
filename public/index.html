@@ -44,21 +44,21 @@
     <p id="statusMsg" class="mt-4 text-sm font-medium text-slate-300"></p>
   </div>
 
-  <!-- WIN POPUP MODAL (Colored Theme) -->
-  <div id="winModal" class="hidden fixed inset-0 bg-slate-950 bg-opacity-90 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
-    <div class="bg-gradient-to-b from-indigo-900 to-slate-900 border-2 border-indigo-500/50 rounded-2xl p-6 w-full max-w-sm text-center shadow-2xl space-y-4">
+  <!-- WIN POPUP MODAL (Solid Dark Background Card) -->
+  <div id="winModal" class="hidden fixed inset-0 bg-slate-950 bg-opacity-80 flex items-center justify-center p-4 z-50 backdrop-blur-md">
+    <div class="bg-slate-900 border-2 border-indigo-500 rounded-2xl p-6 w-full max-w-sm text-center shadow-2xl space-y-4">
       <div class="text-5xl">🎉</div>
       <h2 class="text-2xl font-extrabold text-amber-300">Congratulations!</h2>
       <p id="winMessage" class="text-emerald-400 font-bold text-xl"></p>
-      <button onclick="openClaimForm()" class="w-full py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold rounded-xl shadow-lg transition transform active:scale-95">
+      <button onclick="openClaimForm()" class="w-full py-3 bg-amber-400 hover:bg-amber-300 text-slate-950 font-extrabold rounded-xl shadow-lg transition transform active:scale-95">
         Claim Prize
       </button>
     </div>
   </div>
 
-  <!-- DYNAMIC CLAIM FORM MODAL (Dark Text inside Inputs) -->
-  <div id="claimModal" class="hidden fixed inset-0 bg-slate-950 bg-opacity-90 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
-    <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 w-full max-w-sm shadow-2xl space-y-4 text-left">
+  <!-- DYNAMIC CLAIM FORM MODAL (Black Text inside Input Fields) -->
+  <div id="claimModal" class="hidden fixed inset-0 bg-slate-950 bg-opacity-80 flex items-center justify-center p-4 z-50 backdrop-blur-md">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl p-6 w-full max-w-sm shadow-2xl space-y-4 text-left">
       <h3 class="text-xl font-bold text-white">Enter Details to Claim</h3>
       <form id="dynamicClaimForm" onsubmit="handleClaimSubmit(event)" class="space-y-3">
         <div id="formFieldsContainer" class="space-y-3"></div>
@@ -81,6 +81,7 @@
     const canvas = document.getElementById('wheelCanvas');
     const ctx = canvas.getContext('2d');
 
+    // Extract item title accurately regardless of column name
     function getItemTitle(item) {
       if (!item) return 'Prize';
       return item.title || item.name || item.label || item.gift_name || 'Prize';
