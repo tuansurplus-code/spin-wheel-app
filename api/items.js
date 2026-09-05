@@ -20,7 +20,7 @@ module.exports = async function handler(req, res) {
       'Content-Type': 'application/json'
     };
 
-    // Fetch both active gifts (with stock > 0) and dynamic claim form fields
+    // Fetch active gifts with stock and claim form fields
     const [giftsRes, fieldsRes] = await Promise.all([
       fetch(`${SUPABASE_URL}/rest/v1/gifts?select=*&active=eq.true&stock=gt.0&order=id.asc`, { headers }),
       fetch(`${SUPABASE_URL}/rest/v1/form_fields?select=*&order=created_at.asc`, { headers })
