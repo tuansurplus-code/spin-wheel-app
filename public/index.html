@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Spin the Wheel & Claim Prize</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    canvas { max-width: 100%; height: auto; }
+  </style>
+</head>
+<body class="bg-slate-900 text-white min-h-screen flex flex-col items-center justify-center p-4">
+
+  <div class="max-w-md w-full bg-slate-800 p-6 rounded-2xl shadow-xl text-center border border-slate-700">
+    <h1 class="text-3xl font-extrabold mb-2 text-indigo-400">Spin & Win</h1>
+    <p class="text-slate-400 text-sm mb-6">Enter details, spin the wheel, and win prizes!</p>
+
+    <!-- Canvas Wheel -->
+    <div class="relative flex justify-center items-center my-4">
+      <div class="absolute -top-3 z-10 w-0 h-0 border-l-[15px] border-l-transparent border-r-[15px] border-r-transparent border-t-[30px] border-t-red-500"></div>
+      <canvas id="wheelCanvas" width="350" height="350"></canvas>
+    </div>
+
+    <!-- Spin Button -->
+    <button id="spinBtn" onclick="spinWheel()" class="w-full py-3 bg-indigo-600 hover:bg-indigo-500 font-bold text-lg rounded-xl transition shadow-lg my-4">
+      SPIN NOW
+    </button>
+
+    <!-- User Registration Form -->
+    <div id="claimModal" class="hidden mt-6 text-left bg-slate-900 p-4 rounded-xl border border-slate-700">
+      <h3 class="text-lg font-bold text-indigo-400 mb-2">Claim Your Prize!</h3>
+      <p id="wonItemText" class="text-sm font-semibold text-emerald-400 mb-4"></p>
+      
+      <form id="claimForm" onsubmit="submitClaim(event)" class="space-y-3">
+        <input type="hidden" id="giftId">
+        <div>
+          <label class="text-xs text-slate-400">Full Name</label>
+          <input type="text" id="userName" required class="w-full p-2 bg-slate-800 rounded border border-slate-700 text-sm">
+        </div>
+        <div>
+          <label class="text-xs text-slate-400">Email</label>
+          <input type="email" id="userEmail" required class="w-full p-2 bg-slate-800 rounded border border-slate-700 text-sm">
+        </div>
+        <div>
+          <label class="text-xs text-slate-400">Phone</label>
+          <input type="tel" id="userPhone" class="w-full p-2 bg-slate-800 rounded border border-slate-700 text-sm">
+        </div>
+        <button type="submit" id="claimBtn" class="w-full py-2 bg-emerald-600 hover:bg-emerald-500 font-bold rounded text-sm transition">
+          Submit Claim
+        </button>
+      </form>
+    </div>
+
+    <div id="statusMsg" class="mt-4 text-sm font-medium"></div>
+  </div>
+
+  <script>
+    let items = [];
+    let isSpinning = false;
+    let currentAngle = 0;
+    const canvas = document.getElementById('wheelCanvas');
+    const ctx = canvas.getContext('2d');
+
+    // Load Items from API
+    async function loadItems() {
+      try {
+        const res = await fetch('/api/items');
+        const data = await res.json();
+        if (data.success && data.items.length > 0) {
+          items = data.items;
+          drawWheel();
+        } else {
+          document.getElementById('statusMsg').innerText = "No prizes available right now.";
+        }
+      } catch (err) {
+        document.getElementById('statusMsg').innerText = "Failed to load wheel items.";
+      }
+    }
+
+    // Draw Canvas Wheel
+    function drawWheel() {
+      const numSegments = items.length;
+      const arcSize = (2 * Math.PI) / numSegments;
+      const radius = canvas.width / 2;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      items.forEach((item, index) => {
+        const angle = currentAngle + index * arcSize;
+        ctx.beginPath();
+        ctx.fillStyle = item.color || '#6366f1';
+        ctx.moveTo(radius, radius);
+        ctx.arc(radius, radius, radius, angle, angle + arcSize);
+        ctx.lineTo(radius, radius);
+        ctx.fill();
+
+        // Draw Text
+        ctx.save();
+        ctx.translate(radius, radius);
+        ctx.rotate(angle + arcSize / 2);
+        ctx.textAlign = "right";
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "bold 14px sans-serif";
+        ctx.fillText(`${item.emoji || ''} ${item.label}`, radius - 20, 5);
+        ctx.restore();
+      });
+    }
+
+    // Spin Logic
+    async function spinWheel() {
+      if (isSpinning) return;
+      isSpinning = true;
+      document.getElementById('statusMsg').innerText = "";
+      document.getElementById('claimModal').classList.add('hidden');
+
+      try {
+        const res = await fetch('/api/spin', { method: 'POST' });
+        const data = await res.json();
+
+        if (!data.success) {
+          document.getElementById('statusMsg').innerText = data.error || "Spin failed.";
+          isSpinning = false;
+          return;
+        }
+
+        const winningIndex = data.winningIndex;
+        const winningItem = data.winningItem;
+
+        // Calculate rotation stops
+        const numSegments = items.length;
+        const segmentAngle = (2 * Math.PI) / numSegments;
+        const targetAngle = (3 * Math.PI / 2) - (winningIndex * segmentAngle) - (segmentAngle / 2);
+        const totalRotation = currentAngle + (Math.PI * 8) + (targetAngle - (currentAngle % (2 * Math.PI)));
+
+        let start = null;
+        const duration = 4000;
+
+        function animateWheel(timestamp) {
+          if (!start) start = timestamp;
+          const progress = Math.min((timestamp - start) / duration, 1);
+          const easeOut = 1 - Math.pow(1 - progress, 3);
+
+          currentAngle = easeOut * totalRotation;
+          drawWheel();
+
+          if (progress < 1) {
+            requestAnimationFrame(animateWheel);
+          } else {
+            isSpinning = false;
+            showClaimForm(winningItem);
+          }
+        }
+
+        requestAnimationFrame(animateWheel);
+      } catch (err) {
+        document.getElementById('statusMsg').innerText = "An error occurred during spin.";
+        isSpinning = false;
+      }
+    }
+
+    // Show Claim Form
+    function showClaimForm(item) {
+      document.getElementById('giftId').value = item.id;
+      document.getElementById('wonItemText').innerText = `You won: ${item.emoji || ''} ${item.label}`;
+      document.getElementById('claimModal').classList.remove('hidden');
+    }
+
+    // Submit Claim to API
+    async function submitClaim(e) {
+      e.preventDefault();
+      const gift_id = document.getElementById('giftId').value;
+      const user_name = document.getElementById('userName').value;
+      const user_email = document.getElementById('userEmail').value;
+      const user_phone = document.getElementById('userPhone').value;
+
+      document.getElementById('claimBtn').disabled = true;
+      document.getElementById('claimBtn').innerText = "Submitting...";
+
+      try {
+        const res = await fetch('/api/claim', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ gift_id, user_name, user_email, user_phone })
+        });
+
+        const data = await res.json();
+
+        if (data.success) {
+          document.getElementById('claimModal').classList.add('hidden');
+          document.getElementById('statusMsg').className = "mt-4 text-sm font-medium text-emerald-400";
+          document.getElementById('statusMsg').innerText = "🎉 Congratulations! Your claim has been recorded.";
+          loadItems(); // Refresh inventory
+        } else {
+          document.getElementById('statusMsg').innerText = data.error || "Claim failed.";
+        }
+      } catch (err) {
+        document.getElementById('statusMsg').innerText = "An error occurred submitting details.";
+      } finally {
+        document.getElementById('claimBtn').disabled = false;
+        document.getElementById('claimBtn').innerText = "Submit Claim";
+      }
+    }
+
+    loadItems();
+  </script>
+</body>
+</html>
