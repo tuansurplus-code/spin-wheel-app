@@ -1,5 +1,4 @@
 module.exports = async function handler(req, res) {
-  // CORS Headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -32,15 +31,12 @@ module.exports = async function handler(req, res) {
       return res.status(400).json({ success: false, error: 'No active prizes available.' });
     }
 
-    // Supports both 'weight' and 'probability' columns with a fallback default of 10
-    const getItemWeight = (item) => Number(item.weight ?? item.probability ?? 10);
-
-    const totalWeight = items.reduce((acc, item) => acc + getItemWeight(item), 0);
+    const totalWeight = items.reduce((acc, item) => acc + Number(item.weight || 10), 0);
     let randomNum = Math.random() * totalWeight;
     let winningIndex = 0;
 
     for (let i = 0; i < items.length; i++) {
-      const itemWeight = getItemWeight(items[i]);
+      const itemWeight = Number(items[i].weight || 10);
       if (randomNum < itemWeight) {
         winningIndex = i;
         break;
