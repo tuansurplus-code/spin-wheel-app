@@ -1,4 +1,9 @@
 module.exports = async function handler(req, res) {
+  // CORS Headers
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-admin-auth');
+
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
@@ -6,8 +11,8 @@ module.exports = async function handler(req, res) {
     return res.status(401).json({ success: false, error: 'Unauthorized: Invalid admin password.' });
   }
 
-  const SUPABASE_URL = 'https://sikxwjgkkwxkcorejjiy.supabase.co';
-  const SUPABASE_SERVICE_ROLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpa3h3amdra3d4a2NvcmVqaml5Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4ODU5NDM0MSwiZXhwIjoyMTA0MTcwMzQxfQ.4KPdNr4vfGKw2t227SQTsJGTgwprJPCY8YfrLHEeYRY';
+  const SUPABASE_URL = process.env.SUPABASE_URL || 'https://sikxwjgkkwxkcorejjiy.supabase.co';
+  const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpa3h3amdra3d4a2NvcmVqaml5Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4ODU5NDM0MSwiZXhwIjoyMTA0MTcwMzQxfQ.4KPdNr4vfGKw2t227SQTsJGTgwprJPCY8YfrLHEeYRY';
 
   const headers = {
     'apikey': SUPABASE_SERVICE_ROLE_KEY,
@@ -40,7 +45,29 @@ module.exports = async function handler(req, res) {
       try { body = JSON.parse(body); } catch (e) { body = {}; }
     }
 
-    const { action } = body || {};
+    const { action, gifts } = body || {};
+
+    // Bulk Save Gifts (Array Payload Support)
+    if (gifts && Array.isArray(gifts)) {
+      // Clear existing records and re-insert
+      await fetch(`${SUPABASE_URL}/rest/v1/gifts?id=gt.0`, { method: 'DELETE', headers });
+      
+      const payload = gifts.map(g => ({
+        name: g.name || g.label || g.prize_name || g.title || 'Prize',
+        stock: Number(g.stock ?? 100),
+        color: g.color || '#3b82f6',
+        probability: Number(g.weight ?? g.probability ?? 10),
+        active: true
+      }));
+
+      const bulkRes = await fetch(`${SUPABASE_URL}/rest/v1/gifts`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(payload)
+      });
+
+      return res.status(200).json({ success: bulkRes.ok });
+    }
 
     // Form Field CRUD
     if (action === 'save_field') {
@@ -66,7 +93,7 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({ success: resp.ok });
     }
 
-    // Save Settings (Spins per day & Speed)
+    // Save Settings
     if (action === 'save_settings') {
       const { spins_per_day, spin_speed } = body;
       await Promise.all([
@@ -76,29 +103,42 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({ success: true });
     }
 
-    // Prize CRUD
+    // Prize CRUD (Single Item)
     if (req.method === 'POST') {
-      const { name, stock, color, probability } = body;
+      const { name, label, stock, color, probability, weight } = body;
       const addRes = await fetch(`${SUPABASE_URL}/rest/v1/gifts`, {
         method: 'POST',
         headers,
-        body: JSON.stringify({ name, stock: Number(stock ?? 10), color: color || '#3b82f6', probability: Number(probability ?? 10), active: true })
+        body: JSON.stringify({
+          name: name || label || 'Prize',
+          stock: Number(stock ?? 10),
+          color: color || '#3b82f6',
+          probability: Number(weight ?? probability ?? 10),
+          active: true
+        })
       });
       return res.status(200).json({ success: addRes.ok });
     }
 
     if (req.method === 'PATCH') {
-      const { gift_id, name, stock, color, probability } = body;
-      const updateRes = await fetch(`${SUPABASE_URL}/rest/v1/gifts?id=eq.${gift_id}`, {
+      const { gift_id, id, name, label, stock, color, probability, weight } = body;
+      const targetId = gift_id || id;
+      const updateRes = await fetch(`${SUPABASE_URL}/rest/v1/gifts?id=eq.${targetId}`, {
         method: 'PATCH',
         headers,
-        body: JSON.stringify({ name, stock: Number(stock), color, probability: Number(probability) })
+        body: JSON.stringify({
+          name: name || label,
+          stock: Number(stock),
+          color,
+          probability: Number(weight ?? probability)
+        })
       });
       return res.status(200).json({ success: updateRes.ok });
     }
 
     if (req.method === 'DELETE') {
-      const deleteRes = await fetch(`${SUPABASE_URL}/rest/v1/gifts?id=eq.${body.gift_id}`, { method: 'DELETE', headers });
+      const targetId = body.gift_id || body.id;
+      const deleteRes = await fetch(`${SUPABASE_URL}/rest/v1/gifts?id=eq.${targetId}`, { method: 'DELETE', headers });
       return res.status(200).json({ success: deleteRes.ok });
     }
 
