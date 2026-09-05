@@ -15,6 +15,10 @@
       border-left: 14px solid transparent; border-right: 14px solid transparent;
       border-top: 24px solid #ef4444; z-index: 10;
     }
+    .modal-card {
+      background-color: #0f172a !important;
+      opacity: 1 !important;
+    }
   </style>
 </head>
 <body class="flex items-center justify-center min-h-screen p-4 relative">
@@ -44,9 +48,9 @@
     <p id="statusMsg" class="mt-4 text-sm font-medium text-slate-300"></p>
   </div>
 
-  <!-- WIN POPUP MODAL (Solid Dark Background Card) -->
-  <div id="winModal" class="hidden fixed inset-0 bg-slate-950 bg-opacity-80 flex items-center justify-center p-4 z-50 backdrop-blur-md">
-    <div class="bg-slate-900 border-2 border-indigo-500 rounded-2xl p-6 w-full max-w-sm text-center shadow-2xl space-y-4">
+  <!-- WIN POPUP MODAL (Matching wheel container background color) -->
+  <div id="winModal" class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50">
+    <div class="modal-card border-2 border-indigo-500 rounded-2xl p-6 w-full max-w-sm text-center shadow-2xl space-y-4">
       <div class="text-5xl">🎉</div>
       <h2 class="text-2xl font-extrabold text-amber-300">Congratulations!</h2>
       <p id="winMessage" class="text-emerald-400 font-bold text-xl"></p>
@@ -56,9 +60,9 @@
     </div>
   </div>
 
-  <!-- DYNAMIC CLAIM FORM MODAL (Black Text inside Input Fields) -->
-  <div id="claimModal" class="hidden fixed inset-0 bg-slate-950 bg-opacity-80 flex items-center justify-center p-4 z-50 backdrop-blur-md">
-    <div class="bg-slate-900 border border-slate-700 rounded-2xl p-6 w-full max-w-sm shadow-2xl space-y-4 text-left">
+  <!-- DYNAMIC CLAIM FORM MODAL (Matching wheel container background color) -->
+  <div id="claimModal" class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50">
+    <div class="modal-card border border-slate-700 rounded-2xl p-6 w-full max-w-sm shadow-2xl space-y-4 text-left">
       <h3 class="text-xl font-bold text-white">Enter Details to Claim</h3>
       <form id="dynamicClaimForm" onsubmit="handleClaimSubmit(event)" class="space-y-3">
         <div id="formFieldsContainer" class="space-y-3"></div>
@@ -81,7 +85,6 @@
     const canvas = document.getElementById('wheelCanvas');
     const ctx = canvas.getContext('2d');
 
-    // Extract item title accurately regardless of column name
     function getItemTitle(item) {
       if (!item) return 'Prize';
       return item.title || item.name || item.label || item.gift_name || 'Prize';
