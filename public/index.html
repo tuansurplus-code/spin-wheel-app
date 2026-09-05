@@ -3,90 +3,123 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Spin the Wheel & Claim Prize</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <title>Spin & Win</title>
+  <!-- Tailwind CSS CDN -->
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <style>
-    canvas { max-width: 100%; height: auto; }
+    body {
+      background-color: #0f172a;
+      color: #f8fafc;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    }
+    .wheel-container {
+      position: relative;
+      width: 320px;
+      height: 320px;
+      margin: 0 auto;
+    }
+    #wheelCanvas {
+      width: 320px;
+      height: 320px;
+    }
+    .pointer {
+      position: absolute;
+      top: -10px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0;
+      height: 0;
+      border-left: 15px solid transparent;
+      border-right: 15px solid transparent;
+      border-top: 25px solid #ef4444;
+      z-index: 10;
+    }
   </style>
 </head>
-<body class="bg-slate-900 text-white min-h-screen flex flex-col items-center justify-center p-4">
+<body class="flex items-center justify-center min-h-screen p-4">
 
-  <div class="max-w-md w-full bg-slate-800 p-6 rounded-2xl shadow-xl text-center border border-slate-700">
-    <h1 class="text-3xl font-extrabold mb-2 text-indigo-400">Spin & Win</h1>
+  <div class="w-full max-w-md bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-2xl text-center">
+    
+    <!-- Title Section -->
+    <h1 class="text-3xl font-extrabold text-indigo-400 mb-1">Spin & Win</h1>
     <p class="text-slate-400 text-sm mb-6">Enter details, spin the wheel, and win prizes!</p>
 
-    <!-- Canvas Wheel -->
-    <div class="relative flex justify-center items-center my-4">
-      <div class="absolute -top-3 z-10 w-0 h-0 border-l-[15px] border-l-transparent border-r-[15px] border-r-transparent border-t-[30px] border-t-red-500"></div>
-      <canvas id="wheelCanvas" width="350" height="350"></canvas>
+    <!-- Wheel Canvas Area -->
+    <div class="wheel-container mb-6">
+      <div class="pointer"></div>
+      <canvas id="wheelCanvas" width="320" height="320"></canvas>
     </div>
 
     <!-- Spin Button -->
-    <button id="spinBtn" onclick="spinWheel()" class="w-full py-3 bg-indigo-600 hover:bg-indigo-500 font-bold text-lg rounded-xl transition shadow-lg my-4">
+    <button id="spinBtn" onclick="spinWheel()" class="w-full py-3 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white font-bold rounded-xl shadow-lg transition duration-150 disabled:opacity-50">
       SPIN NOW
     </button>
 
-    <!-- User Registration Form -->
-    <div id="claimModal" class="hidden mt-6 text-left bg-slate-900 p-4 rounded-xl border border-slate-700">
-      <h3 class="text-lg font-bold text-indigo-400 mb-2">Claim Your Prize!</h3>
-      <p id="wonItemText" class="text-sm font-semibold text-emerald-400 mb-4"></p>
-      
-      <form id="claimForm" onsubmit="submitClaim(event)" class="space-y-3">
-        <input type="hidden" id="giftId">
+    <!-- Status / Error Banner -->
+    <p id="statusMsg" class="mt-4 text-sm font-medium text-slate-300"></p>
+
+    <!-- Claim Modal / Form Area (Hidden by default) -->
+    <div id="claimSection" class="hidden mt-6 pt-6 border-t border-slate-700 text-left">
+      <h2 class="text-xl font-bold text-white mb-2">Claim Your Prize!</h2>
+      <p id="prizeWonText" class="text-emerald-400 font-semibold text-sm mb-4"></p>
+
+      <form id="claimForm" onsubmit="handleClaimSubmit(event)" class="space-y-3">
         <div>
-          <label class="text-xs text-slate-400">Full Name</label>
-          <input type="text" id="userName" required class="w-full p-2 bg-slate-800 rounded border border-slate-700 text-sm">
+          <label class="block text-xs font-semibold text-slate-400 uppercase mb-1">Full Name</label>
+          <input type="text" id="userName" required class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-indigo-500">
         </div>
+
         <div>
-          <label class="text-xs text-slate-400">Email</label>
-          <input type="email" id="userEmail" required class="w-full p-2 bg-slate-800 rounded border border-slate-700 text-sm">
+          <label class="block text-xs font-semibold text-slate-400 uppercase mb-1">Email</label>
+          <input type="email" id="userEmail" required class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-indigo-500">
         </div>
+
         <div>
-          <label class="text-xs text-slate-400">Phone</label>
-          <input type="tel" id="userPhone" class="w-full p-2 bg-slate-800 rounded border border-slate-700 text-sm">
+          <label class="block text-xs font-semibold text-slate-400 uppercase mb-1">Phone</label>
+          <input type="tel" id="userPhone" required class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-indigo-500">
         </div>
-        <button type="submit" id="claimBtn" class="w-full py-2 bg-emerald-600 hover:bg-emerald-500 font-bold rounded text-sm transition">
+
+        <button type="submit" id="claimBtn" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 font-bold text-white rounded-lg transition duration-150">
           Submit Claim
         </button>
       </form>
     </div>
 
-    <div id="statusMsg" class="mt-4 text-sm font-medium"></div>
   </div>
 
   <script>
+    const COLORS = ['#3b82f6', '#ec4899', '#ef4444', '#f59e0b', '#10b981', '#8b5cf6'];
     let items = [];
     let isSpinning = false;
+    let selectedItem = null;
     let currentAngle = 0;
+
     const canvas = document.getElementById('wheelCanvas');
     const ctx = canvas.getContext('2d');
 
-    // Load Items from API (Handles wrapped objects and direct arrays)
-    async function loadItems() {
+    // Fetch Wheel Items
+    async function fetchItems() {
       try {
         const res = await fetch('/api/items');
         const data = await res.json();
-        
-        // Check if data is a direct array or a wrapped object
-        const giftList = Array.isArray(data) ? data : (data.items || []);
-        
-        if (giftList.length > 0) {
-          items = giftList;
-          document.getElementById('statusMsg').innerText = "";
-          drawWheel();
-        } else {
-          document.getElementById('statusMsg').innerText = "No prizes available right now.";
+
+        if (!res.ok || !data.success || !Array.isArray(data.items) || data.items.length === 0) {
+          const errText = typeof data.error === 'object' ? JSON.stringify(data.error) : data.error;
+          document.getElementById('statusMsg').innerText = errText || "No active prizes available.";
+          return;
         }
+
+        items = data.items;
+        drawWheel();
       } catch (err) {
-        document.getElementById('statusMsg').innerText = "Failed to load wheel items.";
+        document.getElementById('statusMsg').innerText = "Failed to load wheel items: " + err.message;
       }
     }
 
-    // Draw Canvas Wheel
+    // Render Canvas Wheel Segments
     function drawWheel() {
+      if (items.length === 0) return;
       const numSegments = items.length;
-      if (numSegments === 0) return;
-      
       const arcSize = (2 * Math.PI) / numSegments;
       const radius = canvas.width / 2;
 
@@ -95,120 +128,138 @@
       items.forEach((item, index) => {
         const angle = currentAngle + index * arcSize;
         ctx.beginPath();
-        ctx.fillStyle = item.color || '#6366f1';
+        ctx.fillStyle = COLORS[index % COLORS.length];
         ctx.moveTo(radius, radius);
         ctx.arc(radius, radius, radius, angle, angle + arcSize);
         ctx.lineTo(radius, radius);
         ctx.fill();
 
-        // Draw Text
+        // Label Text
         ctx.save();
         ctx.translate(radius, radius);
         ctx.rotate(angle + arcSize / 2);
         ctx.textAlign = "right";
         ctx.fillStyle = "#ffffff";
-        ctx.font = "bold 14px sans-serif";
-        ctx.fillText(`${item.emoji || ''} ${item.label}`, radius - 20, 5);
+        ctx.font = "bold 12px sans-serif";
+        ctx.fillText(item.name || item.title || "Prize", radius - 20, 4);
         ctx.restore();
       });
     }
 
-    // Spin Logic
+    // Trigger Spin Endpoint and Animate
     async function spinWheel() {
       if (isSpinning || items.length === 0) return;
+
       isSpinning = true;
-      document.getElementById('statusMsg').innerText = "";
-      document.getElementById('claimModal').classList.add('hidden');
+      document.getElementById('spinBtn').disabled = true;
+      document.getElementById('statusMsg').innerText = "Spinning...";
+      document.getElementById('claimSection').classList.add('hidden');
 
       try {
         const res = await fetch('/api/spin', { method: 'POST' });
         const data = await res.json();
 
-        if (!data.success && !data.winningItem) {
-          document.getElementById('statusMsg').innerText = data.error || "Spin failed.";
+        if (!res.ok || !data.success) {
+          const errText = typeof data.error === 'object' ? JSON.stringify(data.error) : data.error;
+          document.getElementById('statusMsg').innerText = errText || "Spin error occurred.";
           isSpinning = false;
+          document.getElementById('spinBtn').disabled = false;
           return;
         }
 
-        const winningIndex = data.winningIndex ?? items.findIndex(i => i.id === data.winningItem.id);
-        const winningItem = data.winningItem;
+        const winningIndex = data.winningIndex;
+        selectedItem = data.winningItem;
 
-        // Calculate rotation stops
+        // Calculate rotation target
         const numSegments = items.length;
         const segmentAngle = (2 * Math.PI) / numSegments;
-        const targetAngle = (3 * Math.PI / 2) - (winningIndex * segmentAngle) - (segmentAngle / 2);
-        const totalRotation = currentAngle + (Math.PI * 8) + (targetAngle - (currentAngle % (2 * Math.PI)));
+        const targetSegmentCenter = winningIndex * segmentAngle + (segmentAngle / 2);
+        
+        // Align pointer at 12 o'clock (1.5 * PI)
+        const offset = (1.5 * Math.PI) - targetSegmentCenter;
+        const totalRotation = currentAngle + (10 * Math.PI) + offset;
 
-        let start = null;
-        const duration = 4000;
+        const startTime = performance.now();
+        const duration = 4000; // 4 seconds
 
-        function animateWheel(timestamp) {
-          if (!start) start = timestamp;
-          const progress = Math.min((timestamp - start) / duration, 1);
+        function animateWheel(now) {
+          const elapsed = now - startTime;
+          const progress = Math.min(elapsed / duration, 1);
           const easeOut = 1 - Math.pow(1 - progress, 3);
 
-          currentAngle = easeOut * totalRotation;
+          currentAngle = currentAngle + (totalRotation - currentAngle) * easeOut;
           drawWheel();
 
           if (progress < 1) {
             requestAnimationFrame(animateWheel);
           } else {
             isSpinning = false;
-            showClaimForm(winningItem);
+            document.getElementById('statusMsg').innerText = "";
+            document.getElementById('prizeWonText').innerText = `You won: ${selectedItem.name || selectedItem.title || 'a Prize'}!`;
+            document.getElementById('claimSection').classList.remove('hidden');
           }
         }
 
         requestAnimationFrame(animateWheel);
+
       } catch (err) {
-        document.getElementById('statusMsg').innerText = "An error occurred during spin.";
+        document.getElementById('statusMsg').innerText = "Network error: " + err.message;
         isSpinning = false;
+        document.getElementById('spinBtn').disabled = false;
       }
     }
 
-    // Show Claim Form
-    function showClaimForm(item) {
-      document.getElementById('giftId').value = item.id;
-      document.getElementById('wonItemText').innerText = `You won: ${item.emoji || ''} ${item.label}`;
-      document.getElementById('claimModal').classList.remove('hidden');
-    }
+    // Submit Prize Claim Form
+    async function handleClaimSubmit(event) {
+      event.preventDefault();
+      if (!selectedItem) return;
 
-    // Submit Claim to API
-    async function submitClaim(e) {
-      e.preventDefault();
-      const gift_id = document.getElementById('giftId').value;
-      const user_name = document.getElementById('userName').value;
-      const user_email = document.getElementById('userEmail').value;
-      const user_phone = document.getElementById('userPhone').value;
+      const claimBtn = document.getElementById('claimBtn');
+      claimBtn.disabled = true;
+      claimBtn.innerText = "Submitting...";
 
-      document.getElementById('claimBtn').disabled = true;
-      document.getElementById('claimBtn').innerText = "Submitting...";
+      const name = document.getElementById('userName').value;
+      const email = document.getElementById('userEmail').value;
+      const phone = document.getElementById('userPhone').value;
 
       try {
         const res = await fetch('/api/claim', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ gift_id, user_name, user_email, user_phone })
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            gift_id: selectedItem.id,
+            user_name: name,
+            user_email: email,
+            user_phone: phone
+          })
         });
 
         const data = await res.json();
 
-        if (data.success) {
-          document.getElementById('claimModal').classList.add('hidden');
-          document.getElementById('statusMsg').className = "mt-4 text-sm font-medium text-emerald-400";
-          document.getElementById('statusMsg').innerText = "🎉 Congratulations! Your claim has been recorded.";
-          loadItems(); // Refresh inventory
-        } else {
-          document.getElementById('statusMsg').innerText = data.error || "Claim failed.";
+        if (!res.ok || !data.success) {
+          const errText = typeof data.error === 'object' ? JSON.stringify(data.error) : data.error;
+          alert("Error: " + (errText || "Submission failed."));
+          claimBtn.disabled = false;
+          claimBtn.innerText = "Submit Claim";
+          return;
         }
+
+        alert("Congratulations! Your prize claim has been recorded.");
+        document.getElementById('claimForm').reset();
+        document.getElementById('claimSection').classList.add('hidden');
+        document.getElementById('spinBtn').disabled = false;
+        fetchItems(); // Refresh items
       } catch (err) {
-        document.getElementById('statusMsg').innerText = "An error occurred submitting details.";
-      } finally {
-        document.getElementById('claimBtn').disabled = false;
-        document.getElementById('claimBtn').innerText = "Submit Claim";
+        alert("Network error: " + err.message);
+        claimBtn.disabled = false;
+        claimBtn.innerText = "Submit Claim";
       }
     }
 
-    loadItems();
+    // Initialize on page load
+    fetchItems();
   </script>
 </body>
 </html>
