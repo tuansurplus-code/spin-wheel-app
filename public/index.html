@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Spin & Win</title>
-  <!-- Tailwind CSS CDN -->
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <style>
     body {
@@ -24,14 +23,14 @@
     }
     .pointer {
       position: absolute;
-      top: -10px;
+      top: -12px;
       left: 50%;
       transform: translateX(-50%);
       width: 0;
       height: 0;
-      border-left: 15px solid transparent;
-      border-right: 15px solid transparent;
-      border-top: 25px solid #ef4444;
+      border-left: 14px solid transparent;
+      border-right: 14px solid transparent;
+      border-top: 24px solid #ef4444;
       z-index: 10;
     }
   </style>
@@ -40,12 +39,11 @@
 
   <div class="w-full max-w-md bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-2xl text-center">
     
-    <!-- Title Section -->
     <h1 class="text-3xl font-extrabold text-indigo-400 mb-1">Spin & Win</h1>
     <p class="text-slate-400 text-sm mb-6">Enter details, spin the wheel, and win prizes!</p>
 
-    <!-- Wheel Canvas Area -->
-    <div class="wheel-container mb-6">
+    <!-- Wheel Area with extra bottom margin to prevent button touching -->
+    <div class="wheel-container mb-8">
       <div class="pointer"></div>
       <canvas id="wheelCanvas" width="320" height="320"></canvas>
     </div>
@@ -55,10 +53,9 @@
       SPIN NOW
     </button>
 
-    <!-- Status / Error Banner -->
     <p id="statusMsg" class="mt-4 text-sm font-medium text-slate-300"></p>
 
-    <!-- Claim Modal / Form Area (Hidden by default) -->
+    <!-- Claim Modal / Form Area -->
     <div id="claimSection" class="hidden mt-6 pt-6 border-t border-slate-700 text-left">
       <h2 class="text-xl font-bold text-white mb-2">Claim Your Prize!</h2>
       <p id="prizeWonText" class="text-emerald-400 font-semibold text-sm mb-4"></p>
@@ -97,7 +94,6 @@
     const canvas = document.getElementById('wheelCanvas');
     const ctx = canvas.getContext('2d');
 
-    // Fetch Wheel Items
     async function fetchItems() {
       try {
         const res = await fetch('/api/items');
@@ -116,7 +112,6 @@
       }
     }
 
-    // Render Canvas Wheel Segments
     function drawWheel() {
       if (items.length === 0) return;
       const numSegments = items.length;
@@ -134,7 +129,6 @@
         ctx.lineTo(radius, radius);
         ctx.fill();
 
-        // Label Text
         ctx.save();
         ctx.translate(radius, radius);
         ctx.rotate(angle + arcSize / 2);
@@ -146,7 +140,6 @@
       });
     }
 
-    // Trigger Spin Endpoint and Animate
     async function spinWheel() {
       if (isSpinning || items.length === 0) return;
 
@@ -170,22 +163,22 @@
         const winningIndex = data.winningIndex;
         selectedItem = data.winningItem;
 
-        // Calculate rotation target
         const numSegments = items.length;
         const segmentAngle = (2 * Math.PI) / numSegments;
         const targetSegmentCenter = winningIndex * segmentAngle + (segmentAngle / 2);
         
-        // Align pointer at 12 o'clock (1.5 * PI)
         const offset = (1.5 * Math.PI) - targetSegmentCenter;
-        const totalRotation = currentAngle + (10 * Math.PI) + offset;
+        const totalRotation = currentAngle + (6 * Math.PI) + offset; // Smooth spin
 
         const startTime = performance.now();
-        const duration = 4000; // 4 seconds
+        const duration = 6500; // Extended duration for realistic slow-down deceleration
 
         function animateWheel(now) {
           const elapsed = now - startTime;
           const progress = Math.min(elapsed / duration, 1);
-          const easeOut = 1 - Math.pow(1 - progress, 3);
+          
+          // Cubic ease-out formula for smooth, gradual deceleration
+          const easeOut = 1 - Math.pow(1 - progress, 4);
 
           currentAngle = currentAngle + (totalRotation - currentAngle) * easeOut;
           drawWheel();
@@ -209,7 +202,6 @@
       }
     }
 
-    // Submit Prize Claim Form
     async function handleClaimSubmit(event) {
       event.preventDefault();
       if (!selectedItem) return;
@@ -250,7 +242,7 @@
         document.getElementById('claimForm').reset();
         document.getElementById('claimSection').classList.add('hidden');
         document.getElementById('spinBtn').disabled = false;
-        fetchItems(); // Refresh items
+        fetchItems();
       } catch (err) {
         alert("Network error: " + err.message);
         claimBtn.disabled = false;
@@ -258,7 +250,6 @@
       }
     }
 
-    // Initialize on page load
     fetchItems();
   </script>
 </body>
