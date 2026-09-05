@@ -48,21 +48,35 @@
     <p id="statusMsg" class="mt-4 text-sm font-medium text-slate-300"></p>
   </div>
 
-  <!-- WIN POPUP MODAL (Matching wheel container background color) -->
+  <!-- WIN POPUP MODAL -->
   <div id="winModal" class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50">
-    <div class="modal-card border-2 border-indigo-500 rounded-2xl p-6 w-full max-w-sm text-center shadow-2xl space-y-4">
-      <div class="text-5xl">🎉</div>
-      <h2 class="text-2xl font-extrabold text-amber-300">Congratulations!</h2>
+    <div class="modal-card relative border-2 border-indigo-500 rounded-2xl p-6 w-full max-w-sm text-center shadow-2xl space-y-4">
+      
+      <!-- Top Right Close Button -->
+      <button onclick="closeWinModal()" class="absolute top-3 right-3 text-slate-400 hover:text-white text-xl font-bold p-1 leading-none focus:outline-none" aria-label="Close">
+        ✕
+      </button>
+
+      <div id="winEmoji" class="text-5xl">🎉</div>
+      <h2 id="winHeading" class="text-2xl font-extrabold text-amber-300">Congratulations!</h2>
       <p id="winMessage" class="text-emerald-400 font-bold text-xl"></p>
-      <button onclick="openClaimForm()" class="w-full py-3 bg-amber-400 hover:bg-amber-300 text-slate-950 font-extrabold rounded-xl shadow-lg transition transform active:scale-95">
+      
+      <!-- Action Button (Dynamically updated for Prize vs Try Again) -->
+      <button id="modalActionBtn" onclick="handleModalAction()" class="w-full py-3 bg-amber-400 hover:bg-amber-300 text-slate-950 font-extrabold rounded-xl shadow-lg transition transform active:scale-95">
         Claim Prize
       </button>
     </div>
   </div>
 
-  <!-- DYNAMIC CLAIM FORM MODAL (Matching wheel container background color) -->
+  <!-- DYNAMIC CLAIM FORM MODAL -->
   <div id="claimModal" class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50">
-    <div class="modal-card border border-slate-700 rounded-2xl p-6 w-full max-w-sm shadow-2xl space-y-4 text-left">
+    <div class="modal-card relative border border-slate-700 rounded-2xl p-6 w-full max-w-sm shadow-2xl space-y-4 text-left">
+      
+      <!-- Top Right Close Button -->
+      <button onclick="closeClaimModal()" class="absolute top-3 right-3 text-slate-400 hover:text-white text-xl font-bold p-1 leading-none focus:outline-none" aria-label="Close">
+        ✕
+      </button>
+
       <h3 class="text-xl font-bold text-white">Enter Details to Claim</h3>
       <form id="dynamicClaimForm" onsubmit="handleClaimSubmit(event)" class="space-y-3">
         <div id="formFieldsContainer" class="space-y-3"></div>
@@ -81,6 +95,7 @@
     let currentAngle = 0;
     let spinsPerDay = 1;
     let spinDuration = 6000;
+    let isTryAgainOutcome = false;
 
     const canvas = document.getElementById('wheelCanvas');
     const ctx = canvas.getContext('2d');
@@ -203,12 +218,52 @@
           localStorage.setItem('spin_history', JSON.stringify(spins));
 
           const titleWon = getItemTitle(selectedItem);
-          document.getElementById('winMessage').innerText = `You won a ${titleWon}!`;
+          const lowerTitle = titleWon.toLowerCase().trim();
+
+          // Check if the result is "Try again"
+          if (lowerTitle.includes('try again') || lowerTitle.includes('no prize') || lowerTitle.includes('better luck')) {
+            isTryAgainOutcome = true;
+            document.getElementById('winEmoji').innerText = '😔';
+            document.getElementById('winHeading').innerText = 'Better Luck Next Time!';
+            document.getElementById('winHeading').className = 'text-2xl font-extrabold text-slate-300';
+            document.getElementById('winMessage').innerText = titleWon;
+            document.getElementById('winMessage').className = 'text-slate-400 font-bold text-xl';
+            document.getElementById('modalActionBtn').innerText = 'Close';
+            document.getElementById('modalActionBtn').className = 'w-full py-3 bg-slate-700 hover:bg-slate-600 text-white font-extrabold rounded-xl shadow-lg transition transform active:scale-95';
+          } else {
+            isTryAgainOutcome = false;
+            document.getElementById('winEmoji').innerText = '🎉';
+            document.getElementById('winHeading').innerText = 'Congratulations!';
+            document.getElementById('winHeading').className = 'text-2xl font-extrabold text-amber-300';
+            document.getElementById('winMessage').innerText = `You won a ${titleWon}!`;
+            document.getElementById('winMessage').className = 'text-emerald-400 font-bold text-xl';
+            document.getElementById('modalActionBtn').innerText = 'Claim Prize';
+            document.getElementById('modalActionBtn').className = 'w-full py-3 bg-amber-400 hover:bg-amber-300 text-slate-950 font-extrabold rounded-xl shadow-lg transition transform active:scale-95';
+          }
+
           document.getElementById('winModal').classList.remove('hidden');
         }
       }
 
       requestAnimationFrame(animateWheel);
+    }
+
+    function handleModalAction() {
+      if (isTryAgainOutcome) {
+        closeWinModal();
+      } else {
+        openClaimForm();
+      }
+    }
+
+    function closeWinModal() {
+      document.getElementById('winModal').classList.add('hidden');
+      checkRateLimit();
+    }
+
+    function closeClaimModal() {
+      document.getElementById('claimModal').classList.add('hidden');
+      checkRateLimit();
     }
 
     function openClaimForm() {
@@ -265,8 +320,7 @@
 
       if (res.ok) {
         alert('Claim recorded successfully!');
-        document.getElementById('claimModal').classList.add('hidden');
-        checkRateLimit();
+        closeClaimModal();
       } else {
         alert('Failed to submit claim.');
       }
