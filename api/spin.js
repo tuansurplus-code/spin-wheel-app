@@ -1,47 +1,52 @@
-import { createClient } from '@supabase/supabase-js';
+const { createClient } = require('@supabase/supabase-js');
 
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
-
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+    return res.status(405).json({ success: false, error: 'Method not allowed' });
   }
 
   try {
-    const { data: gifts, error } = await supabase
+    const supabaseUrl = process.env.SUPABASE_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!supabaseUrl || !supabaseKey) {
+      return res.status(500).json({ success: false, error: 'Missing environment variables.' });
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // Fetch active items with stock
+    const { data: items, error } = await supabase
       .from('gifts')
       .select('*')
       .eq('active', true)
       .gt('stock', 0);
 
-    if (error) throw error;
-    if (!gifts || gifts.length === 0) {
-      return res.status(400).json({ error: 'No available items in stock' });
+    if (error || !items || items.length === 0) {
+      return res.status(400).json({ success: false, error: 'No active prizes available.' });
     }
 
-    const totalWeight = gifts.reduce((sum, item) => sum + item.weight, 0);
+    // Weighted random selection
+    const totalWeight = items.reduce((acc, item) => acc + (item.weight || 1), 0);
     let randomNum = Math.random() * totalWeight;
-    let winningItem = gifts[0];
+    let winningIndex = 0;
 
-    for (const item of gifts) {
-      if (randomNum < item.weight) {
-        winningItem = item;
+    for (let i = 0; i < items.length; i++) {
+      if (randomNum < items[i].weight) {
+        winningIndex = i;
         break;
       }
-      randomNum -= item.weight;
+      randomNum -= items[i].weight;
     }
 
-    const winningIndex = gifts.findIndex(g => g.id === winningItem.id);
+    const winningItem = items[winningIndex];
 
     return res.status(200).json({
       success: true,
       winningIndex,
       winningItem
     });
-  } catch (error) {
-    return res.status(500).json({ error: error.message });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
   }
-}
+};
