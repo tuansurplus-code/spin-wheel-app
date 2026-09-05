@@ -16,8 +16,9 @@ module.exports = async function handler(req, res) {
       'Content-Type': 'application/json'
     };
 
+    // Sort by created_at.asc instead of id.asc for UUID support
     const [giftsRes, fieldsRes] = await Promise.all([
-      fetch(`${SUPABASE_URL}/rest/v1/gifts?select=*&active=eq.true&stock=gt.0&order=id.asc`, { headers }),
+      fetch(`${SUPABASE_URL}/rest/v1/gifts?select=*&active=eq.true&stock=gt.0&order=created_at.asc`, { headers }),
       fetch(`${SUPABASE_URL}/rest/v1/form_fields?select=*&order=created_at.asc`, { headers })
     ]);
 
@@ -26,11 +27,11 @@ module.exports = async function handler(req, res) {
 
     if (!giftsRes.ok) return res.status(giftsRes.status).json({ success: false, error: giftsData });
 
-    // Normalize label and name properties so frontend always renders text
     const itemsList = (Array.isArray(giftsData) ? giftsData : []).map(g => ({
       ...g,
-      name: g.label || g.name || 'Prize',
-      label: g.label || g.name || 'Prize'
+      name: g.label || 'Prize',
+      label: g.label || 'Prize',
+      weight: Number(g.weight ?? 10)
     }));
 
     return res.status(200).json({
