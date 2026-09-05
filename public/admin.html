@@ -3,98 +3,231 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin Dashboard - Spin & Win</title>
+  <title>Admin Panel - Spin & Win</title>
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <style>
     body { background-color: #0f172a; color: #f8fafc; font-family: system-ui, sans-serif; }
-    /* Global fix to ensure all text inside inputs is solid black */
+    /* Force high-visibility black text on light background for all text inputs */
     input, select, textarea {
       color: #0f172a !important;
       background-color: #f1f5f9 !important;
     }
+    .modal-card {
+      background-color: #0f172a !important;
+      opacity: 1 !important;
+    }
   </style>
 </head>
-<body class="p-6 max-w-5xl mx-auto space-y-8">
+<body class="min-h-screen flex flex-col">
 
-  <header class="flex justify-between items-center border-b border-slate-700 pb-4">
-    <div>
-      <h1 class="text-3xl font-extrabold text-indigo-400">Admin Dashboard</h1>
-      <p class="text-slate-400 text-sm">Manage prizes, probabilities, and claim form fields</p>
+  <!-- ADMIN AUTHENTICATION MODAL -->
+  <div id="authModal" class="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center p-4 z-50">
+    <div class="modal-card relative border border-slate-700 rounded-2xl p-6 w-full max-w-sm shadow-2xl space-y-4 text-center">
+      <div class="text-4xl">🔒</div>
+      <h2 class="text-2xl font-bold text-white">Admin Access</h2>
+      <p class="text-slate-400 text-sm">Please enter the admin password to continue.</p>
+      
+      <form onsubmit="handleAuthSubmit(event)" class="space-y-4">
+        <div>
+          <input type="password" id="adminPasswordInput" placeholder="Enter Password" required
+            class="w-full px-4 py-2 text-slate-900 font-bold bg-slate-100 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        </div>
+        <button type="submit" class="w-full py-3 bg-indigo-600 hover:bg-indigo-500 font-bold text-white rounded-xl shadow-lg transition">
+          Login to Dashboard
+        </button>
+      </form>
+      <p id="authErrorMsg" class="text-red-400 text-xs font-semibold hidden">Invalid password. Please try again.</p>
     </div>
-    <button onclick="fetchAdminData()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 font-bold text-white rounded-lg transition">
-      Refresh Data
-    </button>
-  </header>
+  </div>
 
-  <!-- PRIZES / GIFTS MANAGEMENT SECTION -->
-  <section class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl space-y-4">
-    <h2 class="text-xl font-bold text-white border-b border-slate-700 pb-2">Wheel Prizes</h2>
-    
-    <div class="overflow-x-auto">
-      <table class="w-full text-left text-sm text-slate-300">
-        <thead class="bg-slate-700 text-slate-200 uppercase text-xs">
-          <tr>
-            <th class="p-3">ID</th>
-            <th class="p-3">Prize Name</th>
-            <th class="p-3">Probability (Weight)</th>
-            <th class="p-3">Color</th>
-          </tr>
-        </thead>
-        <tbody id="prizesTableBody" class="divide-y divide-slate-700">
-          <tr><td colspan="4" class="p-4 text-center">Loading prizes...</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </section>
+  <!-- MAIN ADMIN CONTAINER (Hidden until authenticated) -->
+  <div id="adminMainContent" class="hidden flex-1 max-w-6xl w-full mx-auto p-6 space-y-6">
 
-  <!-- CLAIM FORM FIELDS MANAGEMENT SECTION -->
-  <section class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl space-y-4">
-    <h2 class="text-xl font-bold text-white border-b border-slate-700 pb-2">Claim Form Fields</h2>
-    
-    <div id="formFieldsContainer" class="space-y-3">
-      <p class="text-slate-400 text-sm">Loading fields...</p>
-    </div>
-  </section>
-
-  <!-- GLOBAL WHEEL SETTINGS SECTION -->
-  <section class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl space-y-4">
-    <h2 class="text-xl font-bold text-white border-b border-slate-700 pb-2">Wheel Settings</h2>
-    
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <!-- HEADER & TABS NAVIGATION -->
+    <header class="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-slate-700 pb-4 gap-4">
       <div>
-        <label class="block text-xs font-semibold text-slate-300 uppercase mb-1">Spins Allowed Per User / Day</label>
-        <input type="number" id="settingSpinsPerDay" class="w-full px-3 py-2 text-slate-900 font-bold bg-slate-100 rounded border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        <h1 class="text-3xl font-extrabold text-indigo-400">Admin Panel</h1>
+        <p class="text-slate-400 text-sm">Spin & Win Management Console</p>
       </div>
-      <div>
-        <label class="block text-xs font-semibold text-slate-300 uppercase mb-1">Spin Speed (Seconds)</label>
-        <input type="number" id="settingSpinSpeed" class="w-full px-3 py-2 text-slate-900 font-bold bg-slate-100 rounded border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+
+      <!-- TABS NAVIGATION -->
+      <nav class="flex bg-slate-800 p-1.5 rounded-xl border border-slate-700 space-x-1">
+        <button id="tabBtn-dashboard" onclick="switchTab('dashboard')" class="px-4 py-2 font-bold text-sm rounded-lg transition bg-indigo-600 text-white">
+          Dashboard
+        </button>
+        <button id="tabBtn-config" onclick="switchTab('config')" class="px-4 py-2 font-bold text-sm rounded-lg transition text-slate-400 hover:text-white">
+          Wheel Configuration
+        </button>
+        <button id="tabBtn-records" onclick="switchTab('records')" class="px-4 py-2 font-bold text-sm rounded-lg transition text-slate-400 hover:text-white">
+          Winning Record
+        </button>
+      </nav>
+    </header>
+
+    <!-- 1. DASHBOARD TAB CONTENT -->
+    <div id="tabContent-dashboard" class="tab-pane space-y-6">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="bg-slate-800 border border-slate-700 p-6 rounded-2xl shadow-xl">
+          <p class="text-slate-400 text-xs uppercase font-semibold">Total Wheel Prizes</p>
+          <h3 id="statTotalPrizes" class="text-3xl font-extrabold text-indigo-400 mt-2">0</h3>
+        </div>
+        <div class="bg-slate-800 border border-slate-700 p-6 rounded-2xl shadow-xl">
+          <p class="text-slate-400 text-xs uppercase font-semibold">Total Claims Recorded</p>
+          <h3 id="statTotalClaims" class="text-3xl font-extrabold text-emerald-400 mt-2">0</h3>
+        </div>
+        <div class="bg-slate-800 border border-slate-700 p-6 rounded-2xl shadow-xl">
+          <p class="text-slate-400 text-xs uppercase font-semibold">Spins Allowed / Day</p>
+          <h3 id="statSpinsPerDay" class="text-3xl font-extrabold text-amber-400 mt-2">1</h3>
+        </div>
       </div>
     </div>
-  </section>
+
+    <!-- 2. WHEEL CONFIGURATION TAB CONTENT -->
+    <div id="tabContent-config" class="tab-pane hidden space-y-8">
+      
+      <!-- PRIZES / GIFTS MANAGEMENT -->
+      <section class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl space-y-4">
+        <h2 class="text-xl font-bold text-white border-b border-slate-700 pb-2">Wheel Segment Prizes</h2>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm text-slate-300">
+            <thead class="bg-slate-700 text-slate-200 uppercase text-xs">
+              <tr>
+                <th class="p-3">ID</th>
+                <th class="p-3">Prize Name</th>
+                <th class="p-3">Probability (Weight)</th>
+                <th class="p-3">Segment Color</th>
+              </tr>
+            </thead>
+            <tbody id="prizesTableBody" class="divide-y divide-slate-700">
+              <tr><td colspan="4" class="p-4 text-center">Loading prizes...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- CLAIM FORM FIELDS MANAGEMENT -->
+      <section class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl space-y-4">
+        <h2 class="text-xl font-bold text-white border-b border-slate-700 pb-2">Claim Form Input Fields</h2>
+        <div id="formFieldsContainer" class="space-y-3">
+          <p class="text-slate-400 text-sm">Loading fields...</p>
+        </div>
+      </section>
+
+      <!-- GLOBAL SETTINGS -->
+      <section class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl space-y-4">
+        <h2 class="text-xl font-bold text-white border-b border-slate-700 pb-2">Wheel Performance Settings</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 uppercase mb-1">Spins Allowed Per User / Day</label>
+            <input type="number" id="settingSpinsPerDay" class="w-full px-3 py-2 text-slate-900 font-bold bg-slate-100 rounded-xl border border-slate-300 focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 uppercase mb-1">Spin Speed (Seconds)</label>
+            <input type="number" id="settingSpinSpeed" class="w-full px-3 py-2 text-slate-900 font-bold bg-slate-100 rounded-xl border border-slate-300 focus:outline-none">
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- 3. WINNING RECORD TAB CONTENT -->
+    <div id="tabContent-records" class="tab-pane hidden space-y-6">
+      <section class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl space-y-4">
+        <h2 class="text-xl font-bold text-white border-b border-slate-700 pb-2">Winning & Claim History</h2>
+        
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm text-slate-300">
+            <thead class="bg-slate-700 text-slate-200 uppercase text-xs">
+              <tr>
+                <th class="p-3">Claim ID</th>
+                <th class="p-3">User Name</th>
+                <th class="p-3">Email</th>
+                <th class="p-3">Phone</th>
+                <th class="p-3">Prize Won</th>
+                <th class="p-3">Date / Time</th>
+              </tr>
+            </thead>
+            <tbody id="recordsTableBody" class="divide-y divide-slate-700">
+              <tr><td colspan="6" class="p-4 text-center">Loading records...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+  </div>
 
   <script>
-    let adminAuthHeader = 'admin123'; // Replace with your auth header key if applicable
+    let adminToken = '';
 
-    // Fallback extraction to ensure prize names display regardless of DB column name
+    // Universal Property Getter to extract Prize Names safely from database records
     function getPrizeTitle(item) {
       if (!item) return 'N/A';
       return item.title || item.gift_name || item.name || item.label || item.prize_name || 'Unnamed Prize';
     }
 
+    // AUTHENTICATION LOGIC
+    function handleAuthSubmit(e) {
+      e.preventDefault();
+      const pwd = document.getElementById('adminPasswordInput').value;
+      if (pwd) {
+        adminToken = pwd;
+        fetchAdminData();
+      }
+    }
+
+    // TAB SWITCHING LOGIC
+    function switchTab(tabKey) {
+      const tabs = ['dashboard', 'config', 'records'];
+      tabs.forEach(t => {
+        const btn = document.getElementById(`tabBtn-${t}`);
+        const pane = document.getElementById(`tabContent-${t}`);
+        
+        if (t === tabKey) {
+          btn.className = "px-4 py-2 font-bold text-sm rounded-lg transition bg-indigo-600 text-white";
+          pane.classList.remove('hidden');
+        } else {
+          btn.className = "px-4 py-2 font-bold text-sm rounded-lg transition text-slate-400 hover:text-white";
+          pane.classList.add('hidden');
+        }
+      });
+    }
+
+    // DATA FETCHING & RENDERING
     async function fetchAdminData() {
       try {
-        const res = await fetch('/api/admin', { headers: { 'x-admin-auth': adminAuthHeader } });
-        const data = await res.json();
+        const res = await fetch('/api/admin', { headers: { 'x-admin-auth': adminToken } });
+        
+        if (!res.ok) {
+          document.getElementById('authErrorMsg').classList.remove('hidden');
+          return;
+        }
 
+        const data = await res.json();
         if (data && data.success) {
+          // Hide auth modal & show main content
+          document.getElementById('authModal').classList.add('hidden');
+          document.getElementById('adminMainContent').classList.remove('hidden');
+
+          renderDashboardStats(data);
           renderPrizes(data.gifts || []);
           renderFormFields(data.form_fields || []);
           renderSettings(data.settings || []);
+          renderRecords(data.claims || []);
         } else {
-          alert('Failed to fetch admin data.');
+          document.getElementById('authErrorMsg').classList.remove('hidden');
         }
       } catch (err) {
-        console.error('Error loading admin panel:', err);
+        document.getElementById('authErrorMsg').classList.remove('hidden');
+      }
+    }
+
+    function renderDashboardStats(data) {
+      document.getElementById('statTotalPrizes').innerText = data.gifts?.length || 0;
+      document.getElementById('statTotalClaims').innerText = data.claims?.length || 0;
+      
+      const limitSetting = data.settings?.find(s => s.key === 'spins_per_day');
+      if (limitSetting) {
+        document.getElementById('statSpinsPerDay').innerText = limitSetting.value;
       }
     }
 
@@ -158,8 +291,24 @@
       if (speedSetting) document.getElementById('settingSpinSpeed').value = speedSetting.value;
     }
 
-    // Initialize on load
-    fetchAdminData();
+    function renderRecords(claims) {
+      const tbody = document.getElementById('recordsTableBody');
+      if (claims.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="p-4 text-center">No winning records found.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = claims.map(c => `
+        <tr class="hover:bg-slate-750">
+          <td class="p-3 text-slate-400">${c.id || '-'}</td>
+          <td class="p-3 font-semibold text-white">${c.user_name || 'N/A'}</td>
+          <td class="p-3">${c.user_email || 'N/A'}</td>
+          <td class="p-3">${c.user_phone || 'N/A'}</td>
+          <td class="p-3 font-bold text-amber-400">${c.gift_label || 'Prize'}</td>
+          <td class="p-3 text-slate-400">${c.created_at ? new Date(c.created_at).toLocaleString() : '-'}</td>
+        </tr>
+      `).join('');
+    }
   </script>
 </body>
 </html>
