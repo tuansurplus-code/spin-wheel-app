@@ -1,5 +1,4 @@
 module.exports = async function handler(req, res) {
-  // CORS Headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-admin-auth');
@@ -47,16 +46,15 @@ module.exports = async function handler(req, res) {
 
     const { action, gifts } = body || {};
 
-    // Bulk Save Gifts (Array Payload Support)
+    // Bulk Save Gifts (Array Payload)
     if (gifts && Array.isArray(gifts)) {
-      // Clear existing records and re-insert
       await fetch(`${SUPABASE_URL}/rest/v1/gifts?id=gt.0`, { method: 'DELETE', headers });
       
       const payload = gifts.map(g => ({
         name: g.name || g.label || g.prize_name || g.title || 'Prize',
         stock: Number(g.stock ?? 100),
         color: g.color || '#3b82f6',
-        probability: Number(g.weight ?? g.probability ?? 10),
+        weight: Number(g.weight ?? 10),
         active: true
       }));
 
@@ -105,7 +103,7 @@ module.exports = async function handler(req, res) {
 
     // Prize CRUD (Single Item)
     if (req.method === 'POST') {
-      const { name, label, stock, color, probability, weight } = body;
+      const { name, label, stock, color, weight } = body;
       const addRes = await fetch(`${SUPABASE_URL}/rest/v1/gifts`, {
         method: 'POST',
         headers,
@@ -113,7 +111,7 @@ module.exports = async function handler(req, res) {
           name: name || label || 'Prize',
           stock: Number(stock ?? 10),
           color: color || '#3b82f6',
-          probability: Number(weight ?? probability ?? 10),
+          weight: Number(weight ?? 10),
           active: true
         })
       });
@@ -121,7 +119,7 @@ module.exports = async function handler(req, res) {
     }
 
     if (req.method === 'PATCH') {
-      const { gift_id, id, name, label, stock, color, probability, weight } = body;
+      const { gift_id, id, name, label, stock, color, weight } = body;
       const targetId = gift_id || id;
       const updateRes = await fetch(`${SUPABASE_URL}/rest/v1/gifts?id=eq.${targetId}`, {
         method: 'PATCH',
@@ -130,7 +128,7 @@ module.exports = async function handler(req, res) {
           name: name || label,
           stock: Number(stock),
           color,
-          probability: Number(weight ?? probability)
+          weight: Number(weight ?? 10)
         })
       });
       return res.status(200).json({ success: updateRes.ok });
