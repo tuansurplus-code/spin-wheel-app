@@ -42,7 +42,7 @@
     <h1 class="text-3xl font-extrabold text-indigo-400 mb-1">Spin & Win</h1>
     <p class="text-slate-400 text-sm mb-6">Enter details, spin the wheel, and win prizes!</p>
 
-    <!-- Wheel Area with extra bottom margin to prevent button touching -->
+    <!-- Wheel Container -->
     <div class="wheel-container mb-8">
       <div class="pointer"></div>
       <canvas id="wheelCanvas" width="320" height="320"></canvas>
@@ -55,7 +55,7 @@
 
     <p id="statusMsg" class="mt-4 text-sm font-medium text-slate-300"></p>
 
-    <!-- Claim Modal / Form Area -->
+    <!-- Claim Form -->
     <div id="claimSection" class="hidden mt-6 pt-6 border-t border-slate-700 text-left">
       <h2 class="text-xl font-bold text-white mb-2">Claim Your Prize!</h2>
       <p id="prizeWonText" class="text-emerald-400 font-semibold text-sm mb-4"></p>
@@ -94,6 +94,12 @@
     const canvas = document.getElementById('wheelCanvas');
     const ctx = canvas.getContext('2d');
 
+    // Helper to safely resolve prize title from database object
+    function getPrizeName(item) {
+      if (!item) return "Prize";
+      return item.name || item.title || item.label || item.gift_name || item.item_name || item.description || "Prize";
+    }
+
     async function fetchItems() {
       try {
         const res = await fetch('/api/items');
@@ -129,13 +135,14 @@
         ctx.lineTo(radius, radius);
         ctx.fill();
 
+        // Render text label dynamically per item
         ctx.save();
         ctx.translate(radius, radius);
         ctx.rotate(angle + arcSize / 2);
         ctx.textAlign = "right";
         ctx.fillStyle = "#ffffff";
         ctx.font = "bold 12px sans-serif";
-        ctx.fillText(item.name || item.title || "Prize", radius - 20, 4);
+        ctx.fillText(getPrizeName(item), radius - 20, 4);
         ctx.restore();
       });
     }
@@ -168,16 +175,14 @@
         const targetSegmentCenter = winningIndex * segmentAngle + (segmentAngle / 2);
         
         const offset = (1.5 * Math.PI) - targetSegmentCenter;
-        const totalRotation = currentAngle + (6 * Math.PI) + offset; // Smooth spin
+        const totalRotation = currentAngle + (6 * Math.PI) + offset;
 
         const startTime = performance.now();
-        const duration = 6500; // Extended duration for realistic slow-down deceleration
+        const duration = 6000;
 
         function animateWheel(now) {
           const elapsed = now - startTime;
           const progress = Math.min(elapsed / duration, 1);
-          
-          // Cubic ease-out formula for smooth, gradual deceleration
           const easeOut = 1 - Math.pow(1 - progress, 4);
 
           currentAngle = currentAngle + (totalRotation - currentAngle) * easeOut;
@@ -188,7 +193,7 @@
           } else {
             isSpinning = false;
             document.getElementById('statusMsg').innerText = "";
-            document.getElementById('prizeWonText').innerText = `You won: ${selectedItem.name || selectedItem.title || 'a Prize'}!`;
+            document.getElementById('prizeWonText').innerText = `You won: ${getPrizeName(selectedItem)}!`;
             document.getElementById('claimSection').classList.remove('hidden');
           }
         }
