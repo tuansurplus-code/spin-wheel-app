@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard - Spin & Win</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <style>
+    body { background-color: #0f172a; color: #f8fafc; font-family: system-ui, sans-serif; }
+  </style>
+</head>
+<body class="min-h-screen p-6">
+  <div class="max-w-6xl mx-auto space-y-8">
+    
+    <!-- Header -->
+    <div class="flex justify-between items-center border-b border-slate-700 pb-4">
+      <div>
+        <h1 class="text-3xl font-extrabold text-indigo-400">Admin Dashboard</h1>
+        <p class="text-slate-400 text-sm">Manage prizes, stock levels, and view claim records.</p>
+      </div>
+      <button onclick="loadDashboardData()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 font-semibold rounded-lg text-sm transition">
+        Refresh Data
+      </button>
+    </div>
+
+    <p id="adminStatus" class="text-sm font-medium text-amber-400"></p>
+
+    <!-- Section 1: Manage Prizes / Gifts -->
+    <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl">
+      <h2 class="text-xl font-bold text-white mb-4">Manage Wheel Prizes</h2>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-sm text-slate-300">
+          <thead class="text-xs uppercase bg-slate-900 text-slate-400">
+            <tr>
+              <th class="p-3">Prize Name</th>
+              <th class="p-3">Stock Count</th>
+              <th class="p-3">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="giftsTableBody" class="divide-y divide-slate-700">
+            <tr><td colspan="3" class="p-4 text-center text-slate-500">Loading prizes...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Section 2: View Winners & Claims -->
+    <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl">
+      <h2 class="text-xl font-bold text-white mb-4">Prize Claim History</h2>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-sm text-slate-300">
+          <thead class="text-xs uppercase bg-slate-900 text-slate-400">
+            <tr>
+              <th class="p-3">Date / Time</th>
+              <th class="p-3">Winner Name</th>
+              <th class="p-3">Email</th>
+              <th class="p-3">Phone</th>
+              <th class="p-3">Prize Won</th>
+              <th class="p-3">Status</th>
+            </tr>
+          </thead>
+          <tbody id="winnersTableBody" class="divide-y divide-slate-700">
+            <tr><td colspan="6" class="p-4 text-center text-slate-500">Loading claims...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    async function loadDashboardData() {
+      const statusEl = document.getElementById('adminStatus');
+      statusEl.innerText = "Fetching latest data...";
+
+      try {
+        const res = await fetch('/api/admin');
+        const data = await res.json();
+
+        if (!res.ok || !data.success) {
+          statusEl.innerText = "Error: " + (data.error || "Failed to load admin data.");
+          return;
+        }
+
+        renderGifts(data.gifts || []);
+        renderWinners(data.winners || []);
+        statusEl.innerText = "";
+      } catch (err) {
+        statusEl.innerText = "Network Error: " + err.message;
+      }
+    }
+
+    function renderGifts(gifts) {
+      const tbody = document.getElementById('giftsTableBody');
+      if (gifts.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="3" class="p-4 text-center text-slate-500">No prizes found in database.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = gifts.map(g => {
+        const title = g.name || g.title || g.label || g.gift_name || 'Prize';
+        return `
+          <tr class="hover:bg-slate-750">
+            <td class="p-3 font-semibold text-white">${title}</td>
+            <td class="p-3">
+              <input type="number" id="stock_${g.id}" value="${g.stock ?? 0}" min="0" class="w-20 px-2 py-1 bg-slate-900 border border-slate-700 rounded text-white text-center focus:outline-none">
+            </td>
+            <td class="p-3">
+              <button onclick="updateStock('${g.id}')" class="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded font-medium text-xs transition">
+                Save Stock
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function renderWinners(winners) {
+      const tbody = document.getElementById('winnersTableBody');
+      if (winners.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-slate-500">No claims recorded yet.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = winners.map(w => {
+        const dateStr = w.created_at ? new Date(w.created_at).toLocaleString() : 'N/A';
+        const name = w.user_name || w.name || 'Anonymous';
+        const email = w.user_email || w.email || 'N/A';
+        const phone = w.user_phone || w.phone || 'N/A';
+        const prize = w.gift_label || 'Prize';
+        
+        return `
+          <tr class="hover:bg-slate-750">
+            <td class="p-3 text-slate-400 text-xs">${dateStr}</td>
+            <td class="p-3 font-semibold text-white">${name}</td>
+            <td class="p-3">${email}</td>
+            <td class="p-3">${phone}</td>
+            <td class="p-3 text-indigo-300 font-medium">${prize}</td>
+            <td class="p-3"><span class="px-2 py-0.5 text-xs bg-emerald-900 text-emerald-300 border border-emerald-700 rounded-full">${w.status || 'Claimed'}</span></td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    async function updateStock(giftId) {
+      const newStock = parseInt(document.getElementById(`stock_${giftId}`).value, 10);
+      if (isNaN(newStock) || newStock < 0) {
+        alert("Please enter a valid non-negative number for stock.");
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/admin', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ gift_id: giftId, stock: newStock })
+        });
+        const data = await res.json();
+
+        if (res.ok && data.success) {
+          alert("Stock updated successfully!");
+          loadDashboardData();
+        } else {
+          alert("Failed to update stock: " + (data.error || "Unknown error"));
+        }
+      } catch (err) {
+        alert("Network error: " + err.message);
+      }
+    }
+
+    loadDashboardData();
+  </script>
+</body>
+</html>
