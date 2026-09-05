@@ -1,14 +1,10 @@
 module.exports = async function handler(req, res) {
-  // CORS Headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   if (req.method === 'OPTIONS') return res.status(200).end();
-
-  if (req.method !== 'GET') {
-    return res.status(405).json({ success: false, error: 'Method not allowed' });
-  }
+  if (req.method !== 'GET') return res.status(405).json({ success: false, error: 'Method not allowed' });
 
   try {
     const SUPABASE_URL = process.env.SUPABASE_URL || 'https://sikxwjgkkwxkcorejjiy.supabase.co';
@@ -20,7 +16,6 @@ module.exports = async function handler(req, res) {
       'Content-Type': 'application/json'
     };
 
-    // Fetch active gifts with stock and claim form fields
     const [giftsRes, fieldsRes] = await Promise.all([
       fetch(`${SUPABASE_URL}/rest/v1/gifts?select=*&active=eq.true&stock=gt.0&order=id.asc`, { headers }),
       fetch(`${SUPABASE_URL}/rest/v1/form_fields?select=*&order=created_at.asc`, { headers })
@@ -29,18 +24,20 @@ module.exports = async function handler(req, res) {
     const giftsData = await giftsRes.json();
     const fieldsData = await fieldsRes.json();
 
-    if (!giftsRes.ok) {
-      return res.status(giftsRes.status).json({ success: false, error: giftsData });
-    }
+    if (!giftsRes.ok) return res.status(giftsRes.status).json({ success: false, error: giftsData });
 
-    const itemsList = Array.isArray(giftsData) ? giftsData : [];
-    const fieldsList = Array.isArray(fieldsData) ? fieldsData : [];
+    // Normalize label and name properties so frontend always renders text
+    const itemsList = (Array.isArray(giftsData) ? giftsData : []).map(g => ({
+      ...g,
+      name: g.label || g.name || 'Prize',
+      label: g.label || g.name || 'Prize'
+    }));
 
     return res.status(200).json({
       success: true,
       items: itemsList,
       gifts: itemsList,
-      form_fields: fieldsList
+      form_fields: Array.isArray(fieldsData) ? fieldsData : []
     });
   } catch (err) {
     return res.status(500).json({ success: false, error: err.message || 'Server error' });
