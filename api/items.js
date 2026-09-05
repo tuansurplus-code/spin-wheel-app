@@ -1,6 +1,6 @@
-import { createClient } from '@supabase/supabase-js';
+const { createClient } = require('@supabase/supabase-js');
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   try {
     const supabaseUrl = process.env.SUPABASE_URL;
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -8,7 +8,7 @@ export default async function handler(req, res) {
     if (!supabaseUrl || !supabaseKey) {
       return res.status(500).json({ 
         success: false, 
-        error: "Missing environment variables on Vercel." 
+        error: "Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY environment variables." 
       });
     }
 
@@ -28,4 +28,4 @@ export default async function handler(req, res) {
   } catch (err) {
     return res.status(500).json({ success: false, error: err.message });
   }
-}
+};
