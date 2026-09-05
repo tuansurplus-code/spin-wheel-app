@@ -21,7 +21,6 @@ module.exports = async function handler(req, res) {
   };
 
   try {
-    // GET: Load gifts, winners, form fields, and settings
     if (req.method === 'GET') {
       const [giftsRes, winnersRes, fieldsRes, settingsRes] = await Promise.all([
         fetch(`${SUPABASE_URL}/rest/v1/gifts?select=*&order=id.asc`, { headers }),
@@ -30,9 +29,15 @@ module.exports = async function handler(req, res) {
         fetch(`${SUPABASE_URL}/rest/v1/settings?select=*`, { headers })
       ]);
 
+      const giftsRaw = await giftsRes.json();
+      const gifts = (Array.isArray(giftsRaw) ? giftsRaw : []).map(g => ({
+        ...g,
+        name: g.label || g.name || 'Prize'
+      }));
+
       return res.status(200).json({
         success: true,
-        gifts: await giftsRes.json(),
+        gifts,
         winners: await winnersRes.json(),
         form_fields: await fieldsRes.json(),
         settings: await settingsRes.json()
@@ -46,15 +51,16 @@ module.exports = async function handler(req, res) {
 
     const { action, gifts } = body || {};
 
-    // Bulk Save Gifts (Array Payload)
+    // Bulk Save Gifts
     if (gifts && Array.isArray(gifts)) {
       await fetch(`${SUPABASE_URL}/rest/v1/gifts?id=gt.0`, { method: 'DELETE', headers });
       
       const payload = gifts.map(g => ({
-        name: g.name || g.label || g.prize_name || g.title || 'Prize',
+        label: g.label || g.name || g.title || 'Prize',
         stock: Number(g.stock ?? 100),
         color: g.color || '#3b82f6',
         weight: Number(g.weight ?? 10),
+        emoji: g.emoji || '🎁',
         active: true
       }));
 
@@ -67,51 +73,18 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({ success: bulkRes.ok });
     }
 
-    // Form Field CRUD
-    if (action === 'save_field') {
-      const { id, field_label, field_name, field_type, is_required } = body;
-      const method = id ? 'PATCH' : 'POST';
-      const url = id ? `${SUPABASE_URL}/rest/v1/form_fields?id=eq.${id}` : `${SUPABASE_URL}/rest/v1/form_fields`;
-
-      const resp = await fetch(url, {
-        method,
-        headers,
-        body: JSON.stringify({
-          field_label,
-          field_name: field_name || field_label.toLowerCase().replace(/\s+/g, '_'),
-          field_type: field_type || 'text',
-          is_required: is_required ?? true
-        })
-      });
-      return res.status(200).json({ success: resp.ok });
-    }
-
-    if (action === 'delete_field') {
-      const resp = await fetch(`${SUPABASE_URL}/rest/v1/form_fields?id=eq.${body.id}`, { method: 'DELETE', headers });
-      return res.status(200).json({ success: resp.ok });
-    }
-
-    // Save Settings
-    if (action === 'save_settings') {
-      const { spins_per_day, spin_speed } = body;
-      await Promise.all([
-        fetch(`${SUPABASE_URL}/rest/v1/settings?key=eq.spins_per_day`, { method: 'PATCH', headers, body: JSON.stringify({ value: String(spins_per_day) }) }),
-        fetch(`${SUPABASE_URL}/rest/v1/settings?key=eq.spin_speed`, { method: 'PATCH', headers, body: JSON.stringify({ value: String(spin_speed) }) })
-      ]);
-      return res.status(200).json({ success: true });
-    }
-
-    // Prize CRUD (Single Item)
+    // Single Gift CRUD (POST / PATCH / DELETE)
     if (req.method === 'POST') {
-      const { name, label, stock, color, weight } = body;
+      const { label, name, stock, color, weight, emoji } = body;
       const addRes = await fetch(`${SUPABASE_URL}/rest/v1/gifts`, {
         method: 'POST',
         headers,
         body: JSON.stringify({
-          name: name || label || 'Prize',
+          label: label || name || 'Prize',
           stock: Number(stock ?? 10),
           color: color || '#3b82f6',
           weight: Number(weight ?? 10),
+          emoji: emoji || '🎁',
           active: true
         })
       });
@@ -119,16 +92,17 @@ module.exports = async function handler(req, res) {
     }
 
     if (req.method === 'PATCH') {
-      const { gift_id, id, name, label, stock, color, weight } = body;
+      const { gift_id, id, label, name, stock, color, weight, emoji } = body;
       const targetId = gift_id || id;
       const updateRes = await fetch(`${SUPABASE_URL}/rest/v1/gifts?id=eq.${targetId}`, {
         method: 'PATCH',
         headers,
         body: JSON.stringify({
-          name: name || label,
+          label: label || name,
           stock: Number(stock),
           color,
-          weight: Number(weight ?? 10)
+          weight: Number(weight ?? 10),
+          emoji
         })
       });
       return res.status(200).json({ success: updateRes.ok });
