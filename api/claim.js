@@ -1,5 +1,4 @@
 module.exports = async function handler(req, res) {
-  // Support CORS Preflight requests
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
@@ -9,7 +8,6 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    // Safely parse body whether it arrives as an object or a raw JSON string
     let body = req.body;
     if (typeof body === 'string') {
       try {
@@ -19,7 +17,7 @@ module.exports = async function handler(req, res) {
       }
     }
 
-    const { gift_id, user_name, user_email, user_phone } = body || {};
+    const { gift_id, user_name, user_email, user_phone, gift_label } = body || {};
 
     if (!gift_id || !user_name || !user_email) {
       return res.status(400).json({ 
@@ -38,8 +36,8 @@ module.exports = async function handler(req, res) {
       'Prefer': 'return=representation'
     };
 
-    // 1. Fetch current stock for the gift
-    const giftRes = await fetch(`${SUPABASE_URL}/rest/v1/gifts?id=eq.${gift_id}&select=stock`, { headers });
+    // 1. Fetch current stock and details for the gift
+    const giftRes = await fetch(`${SUPABASE_URL}/rest/v1/gifts?id=eq.${gift_id}&select=*`, { headers });
     const giftData = await giftRes.json();
     const gift = Array.isArray(giftData) ? giftData[0] : null;
 
@@ -47,15 +45,20 @@ module.exports = async function handler(req, res) {
       return res.status(400).json({ success: false, error: 'Item is out of stock.' });
     }
 
+    // Resolve prize label name safely
+    const resolvedLabel = gift_label || gift.name || gift.title || gift.label || gift.gift_name || 'Prize';
+
     // 2. Insert winner into the database
     const winRes = await fetch(`${SUPABASE_URL}/rest/v1/winners`, {
       method: 'POST',
       headers,
       body: JSON.stringify({ 
         gift_id: gift_id, 
+        gift_label: resolvedLabel,
         name: user_name, 
         email: user_email, 
-        phone: user_phone 
+        phone: user_phone,
+        status: 'Claimed'
       })
     });
 
