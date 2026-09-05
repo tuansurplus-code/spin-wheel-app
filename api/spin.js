@@ -4,10 +4,7 @@ module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   if (req.method === 'OPTIONS') return res.status(200).end();
-
-  if (req.method !== 'POST') {
-    return res.status(405).json({ success: false, error: 'Method not allowed' });
-  }
+  if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'Method not allowed' });
 
   try {
     const SUPABASE_URL = process.env.SUPABASE_URL || 'https://sikxwjgkkwxkcorejjiy.supabase.co';
@@ -25,11 +22,16 @@ module.exports = async function handler(req, res) {
       }
     );
 
-    const items = await response.json();
+    const rawItems = await response.json();
 
-    if (!response.ok || !Array.isArray(items) || items.length === 0) {
+    if (!response.ok || !Array.isArray(rawItems) || rawItems.length === 0) {
       return res.status(400).json({ success: false, error: 'No active prizes available.' });
     }
+
+    const items = rawItems.map(g => ({
+      ...g,
+      name: g.label || g.name || 'Prize'
+    }));
 
     const totalWeight = items.reduce((acc, item) => acc + Number(item.weight || 10), 0);
     let randomNum = Math.random() * totalWeight;
