@@ -1,358 +1,334 @@
+this is index.html
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Spin & Win</title>
-  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-  <style>
-    body { background-color: #0f172a; color: #f8fafc; font-family: system-ui, sans-serif; }
-    .wheel-container { position: relative; width: 320px; height: 320px; margin: 0 auto; }
-    #wheelCanvas { width: 320px; height: 320px; }
-    .pointer {
-      position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
-      width: 0; height: 0;
-      border-left: 14px solid transparent; border-right: 14px solid transparent;
-      border-top: 24px solid #ef4444; z-index: 10;
-    }
-    .modal-card {
-      background-color: #0f172a !important;
-      opacity: 1 !important;
-    }
-  </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Spin & Win</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <style>
+    body { background-color: #0f172a; color: #f8fafc; font-family: system-ui, sans-serif; }
+    .wheel-container { position: relative; width: 320px; height: 320px; margin: 0 auto; }
+    #wheelCanvas { width: 320px; height: 320px; }
+    .pointer {
+      position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
+      width: 0; height: 0;
+      border-left: 14px solid transparent; border-right: 14px solid transparent;
+      border-top: 24px solid #ef4444; z-index: 10;
+    }
+    .modal-card {
+      background-color: #0f172a !important;
+      opacity: 1 !important;
+    }
+  </style>
 </head>
 <body class="flex items-center justify-center min-h-screen p-4 relative">
 
-  <div class="w-full max-w-md bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-2xl text-center relative z-0">
-    
-    <h1 class="text-3xl font-extrabold text-indigo-400 mb-1">Spin & Win</h1>
-    <p class="text-slate-400 text-sm mb-6">Spin the wheel to get exciting rewards!</p>
+  <div class="w-full max-w-md bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-2xl text-center relative z-0">
+    
+    <h1 class="text-3xl font-extrabold text-indigo-400 mb-1">Spin & Win</h1>
+    <p class="text-slate-400 text-sm mb-6">Spin the wheel to get exciting rewards!</p>
 
-    <div class="wheel-container mb-8">
-      <div class="pointer"></div>
-      <canvas id="wheelCanvas" width="320" height="320"></canvas>
-    </div>
+    <div class="wheel-container mb-8">
+      <div class="pointer"></div>
+      <canvas id="wheelCanvas" width="320" height="320"></canvas>
+    </div>
 
-    <!-- Spin Control Container -->
-    <div id="spinBtnContainer">
-      <button id="spinBtn" onclick="spinWheel()" class="w-full py-3 bg-indigo-600 hover:bg-indigo-500 font-bold rounded-xl shadow-lg transition text-white">
-        SPIN NOW
-      </button>
-    </div>
+    <!-- Spin Control Container -->
+    <div id="spinBtnContainer">
+      <button id="spinBtn" onclick="spinWheel()" class="w-full py-3 bg-indigo-600 hover:bg-indigo-500 font-bold rounded-xl shadow-lg transition text-white">
+        SPIN NOW
+      </button>
+    </div>
 
-    <!-- Spinning Status Badge -->
-    <div id="spinningBadge" class="hidden w-full py-3 bg-slate-700 font-bold text-amber-400 rounded-xl animate-pulse">
-      SPINNING...
-    </div>
+    <!-- Spinning Status Badge -->
+    <div id="spinningBadge" class="hidden w-full py-3 bg-slate-700 font-bold text-amber-400 rounded-xl animate-pulse">
+      SPINNING...
+    </div>
 
-    <p id="statusMsg" class="mt-4 text-sm font-medium text-slate-300"></p>
-  </div>
+    <p id="statusMsg" class="mt-4 text-sm font-medium text-slate-300"></p>
+  </div>
 
-  <!-- WIN POPUP MODAL -->
-  <div id="winModal" class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50">
-    <div class="modal-card relative border-2 border-indigo-500 rounded-2xl p-6 w-full max-w-sm text-center shadow-2xl space-y-4">
-      
-      <!-- Top Right Close Button -->
-      <button onclick="closeWinModal()" class="absolute top-3 right-3 text-slate-400 hover:text-white text-xl font-bold p-1 leading-none focus:outline-none" aria-label="Close">
-        ✕
-      </button>
+  <!-- WIN POPUP MODAL -->
+  <div id="winModal" class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50">
+    <div class="modal-card relative border-2 border-indigo-500 rounded-2xl p-6 w-full max-w-sm text-center shadow-2xl space-y-4">
+      
+      <!-- Top Right Close Button -->
+      <button onclick="closeWinModal()" class="absolute top-3 right-3 text-slate-400 hover:text-white text-xl font-bold p-1 leading-none focus:outline-none" aria-label="Close">
+        ✕
+      </button>
 
-      <div id="winEmoji" class="text-5xl">🎉</div>
-      <h2 id="winHeading" class="text-2xl font-extrabold text-amber-300">Congratulations!</h2>
-      <p id="winMessage" class="text-emerald-400 font-bold text-xl"></p>
-      
-      <!-- Action Button (Matches Spin Button Style) -->
-      <button id="modalActionBtn" onclick="handleModalAction()" class="w-full py-3 bg-indigo-600 hover:bg-indigo-500 font-bold rounded-xl shadow-lg transition text-white transform active:scale-95">
-        Claim Prize
-      </button>
-    </div>
-  </div>
+      <div id="winEmoji" class="text-5xl">🎉</div>
+      <h2 id="winHeading" class="text-2xl font-extrabold text-amber-300">Congratulations!</h2>
+      <p id="winMessage" class="text-emerald-400 font-bold text-xl"></p>
+      
+      <!-- Action Button (Matches Spin Button Style) -->
+      <button id="modalActionBtn" onclick="handleModalAction()" class="w-full py-3 bg-indigo-600 hover:bg-indigo-500 font-bold rounded-xl shadow-lg transition text-white transform active:scale-95">
+        Claim Prize
+      </button>
+    </div>
+  </div>
 
-  <!-- DYNAMIC CLAIM FORM MODAL -->
-  <div id="claimModal" class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50">
-    <div class="modal-card relative border border-slate-700 rounded-2xl p-6 w-full max-w-sm shadow-2xl space-y-4 text-left">
-      
-      <!-- Top Right Close Button -->
-      <button onclick="closeClaimModal()" class="absolute top-3 right-3 text-slate-400 hover:text-white text-xl font-bold p-1 leading-none focus:outline-none" aria-label="Close">
-        ✕
-      </button>
+  <!-- DYNAMIC CLAIM FORM MODAL -->
+  <div id="claimModal" class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50">
+    <div class="modal-card relative border border-slate-700 rounded-2xl p-6 w-full max-w-sm shadow-2xl space-y-4 text-left">
+      
+      <!-- Top Right Close Button -->
+      <button onclick="closeClaimModal()" class="absolute top-3 right-3 text-slate-400 hover:text-white text-xl font-bold p-1 leading-none focus:outline-none" aria-label="Close">
+        ✕
+      </button>
 
-      <h3 class="text-xl font-bold text-white">Enter Details to Claim</h3>
-      <form id="dynamicClaimForm" onsubmit="handleClaimSubmit(event)" class="space-y-3">
-        <div id="formFieldsContainer" class="space-y-3"></div>
-        <!-- Submit Button (Matches Spin Button Style) -->
-        <button type="submit" id="submitClaimBtn" class="w-full py-3 bg-indigo-600 hover:bg-indigo-500 font-bold rounded-xl shadow-lg transition text-white">
-          Submit & Record Claim
-        </button>
-      </form>
-    </div>
-  </div>
+      <h3 class="text-xl font-bold text-white">Enter Details to Claim</h3>
+      <form id="dynamicClaimForm" onsubmit="handleClaimSubmit(event)" class="space-y-3">
+        <div id="formFieldsContainer" class="space-y-3"></div>
+        <!-- Submit Button (Matches Spin Button Style) -->
+        <button type="submit" id="submitClaimBtn" class="w-full py-3 bg-indigo-600 hover:bg-indigo-500 font-bold rounded-xl shadow-lg transition text-white">
+          Submit & Record Claim
+        </button>
+      </form>
+    </div>
+  </div>
 
-  <script>
-    let items = [];
-    let formFields = [];
-    let isSpinning = false;
-    let selectedItem = null;
-    let currentAngle = 0;
-    let spinsPerDay = 1;
-    let spinDuration = 6000;
-    let isTryAgainOutcome = false;
+  <script>
+    let items = [];
+    let formFields = [];
+    let isSpinning = false;
+    let selectedItem = null;
+    let currentAngle = 0;
+    let spinsPerDay = 1;
+    let spinDuration = 6000;
+    let isTryAgainOutcome = false;
 
-    const canvas = document.getElementById('wheelCanvas');
-    const ctx = canvas.getContext('2d');
+    const canvas = document.getElementById('wheelCanvas');
+    const ctx = canvas.getContext('2d');
 
-    function getItemTitle(item) {
-      if (!item) return 'Prize';
-      return item.prize_name || item.title || item.name || item.label || item.gift_name || 'Prize';
-    }
+    function getItemTitle(item) {
+      if (!item) return 'Prize';
+      return item.title || item.name || item.label || item.gift_name || 'Prize';
+    }
 
-    async function initApp() {
-      try {
-        let loaded = false;
+    async function initApp() {
+      try {
+        const res = await fetch('/api/admin', { headers: { 'x-admin-auth': 'admin123' } }).catch(() => null);
+        const data = await res?.json();
 
-        // 1. Try public endpoint first
-        try {
-          const res = await fetch('/api/items');
-          if (res.ok) {
-            const data = await res.json();
-            const fetchedItems = Array.isArray(data) ? data : (data.gifts || data.items || []);
-            if (fetchedItems.length > 0) {
-              items = fetchedItems;
-              formFields = data.form_fields || [];
-              loaded = true;
-            }
-          }
-        } catch (e) {
-          console.warn('Public items API failed, trying admin API fallback...');
-        }
+        if (data && data.success) {
+          items = data.gifts || [];
+          formFields = data.form_fields || [];
+          
+          const limitSetting = data.settings?.find(s => s.key === 'spins_per_day');
+          const speedSetting = data.settings?.find(s => s.key === 'spin_speed');
+          
+          if (limitSetting) spinsPerDay = Number(limitSetting.value);
+          if (speedSetting) spinDuration = Number(speedSetting.value) * 1000;
 
-        // 2. Fall back to admin endpoint if public fetch returned empty/failed
-        if (!loaded) {
-          const res = await fetch('/api/admin', { headers: { 'x-admin-auth': 'admin123' } });
-          const data = await res.json();
-          if (data && data.success) {
-            items = data.gifts || [];
-            formFields = data.form_fields || [];
+          drawWheel();
+          checkRateLimit();
+        }
+      } catch (err) {
+        document.getElementById('statusMsg').innerText = "Failed to load wheel setup.";
+      }
+    }
 
-            const limitSetting = data.settings?.find(s => s.key === 'spins_per_day');
-            const speedSetting = data.settings?.find(s => s.key === 'spin_speed');
-            
-            if (limitSetting) spinsPerDay = Number(limitSetting.value);
-            if (speedSetting) spinDuration = Number(speedSetting.value) * 1000;
-          }
-        }
+    function checkRateLimit() {
+      const spins = JSON.parse(localStorage.getItem('spin_history') || '[]');
+      const now = Date.now();
+      const validSpins = spins.filter(timestamp => (now - timestamp) < 24 * 60 * 60 * 1000);
 
-        if (items.length > 0) {
-          drawWheel();
-          checkRateLimit();
-        } else {
-          document.getElementById('statusMsg').innerText = "No prizes available on the wheel.";
-        }
-      } catch (err) {
-        console.error(err);
-        document.getElementById('statusMsg').innerText = "Failed to load wheel setup.";
-      }
-    }
+      if (validSpins.length >= spinsPerDay) {
+        document.getElementById('spinBtnContainer').classList.add('hidden');
+        document.getElementById('statusMsg').innerText = "You have reached your spin limit for today. Try again in 24 hours!";
+        return false;
+      }
+      return true;
+    }
 
-    function checkRateLimit() {
-      const spins = JSON.parse(localStorage.getItem('spin_history') || '[]');
-      const now = Date.now();
-      const validSpins = spins.filter(timestamp => (now - timestamp) < 24 * 60 * 60 * 1000);
+    function drawWheel() {
+      if (items.length === 0) return;
+      const numSegments = items.length;
+      const arcSize = (2 * Math.PI) / numSegments;
+      const radius = canvas.width / 2;
 
-      if (validSpins.length >= spinsPerDay) {
-        document.getElementById('spinBtnContainer').classList.add('hidden');
-        document.getElementById('statusMsg').innerText = "You have reached your spin limit for today. Try again in 24 hours!";
-        return false;
-      }
-      return true;
-    }
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    function drawWheel() {
-      if (items.length === 0) return;
-      const numSegments = items.length;
-      const arcSize = (2 * Math.PI) / numSegments;
-      const radius = canvas.width / 2;
+      items.forEach((item, index) => {
+        const angle = currentAngle + index * arcSize;
+        const prizeTitle = getItemTitle(item);
 
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.beginPath();
+        ctx.fillStyle = item.color || '#3b82f6';
+        ctx.moveTo(radius, radius);
+        ctx.arc(radius, radius, radius, angle, angle + arcSize);
+        ctx.lineTo(radius, radius);
+        ctx.fill();
 
-      items.forEach((item, index) => {
-        const angle = currentAngle + index * arcSize;
-        const prizeTitle = getItemTitle(item);
+        ctx.save();
+        ctx.translate(radius, radius);
+        ctx.rotate(angle + arcSize / 2);
+        ctx.textAlign = "right";
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "bold 13px system-ui, sans-serif";
+        ctx.fillText(prizeTitle, radius - 18, 4);
+        ctx.restore();
+      });
+    }
 
-        ctx.beginPath();
-        ctx.fillStyle = item.color || '#3b82f6';
-        ctx.moveTo(radius, radius);
-        ctx.arc(radius, radius, radius, angle, angle + arcSize);
-        ctx.lineTo(radius, radius);
-        ctx.fill();
+    function pickWeightedWinner() {
+      const pool = [];
+      items.forEach((item, index) => {
+        const weight = Number(item.probability ?? 10);
+        for (let i = 0; i < weight; i++) pool.push(index);
+      });
+      if (pool.length === 0) return 0;
+      return pool[Math.floor(Math.random() * pool.length)];
+    }
 
-        ctx.save();
-        ctx.translate(radius, radius);
-        ctx.rotate(angle + arcSize / 2);
-        ctx.textAlign = "right";
-        ctx.fillStyle = "#ffffff";
-        ctx.font = "bold 13px system-ui, sans-serif";
-        ctx.fillText(prizeTitle, radius - 18, 4);
-        ctx.restore();
-      });
-    }
+    async function spinWheel() {
+      if (isSpinning || !checkRateLimit()) return;
 
-    function pickWeightedWinner() {
-      const pool = [];
-      items.forEach((item, index) => {
-        const weight = Number(item.weight ?? item.probability ?? 10);
-        for (let i = 0; i < weight; i++) pool.push(index);
-      });
-      if (pool.length === 0) return 0;
-      return pool[Math.floor(Math.random() * pool.length)];
-    }
+      isSpinning = true;
+      document.getElementById('spinBtnContainer').classList.add('hidden');
+      document.getElementById('spinningBadge').classList.remove('hidden');
 
-    async function spinWheel() {
-      if (isSpinning || !checkRateLimit()) return;
+      const winningIndex = pickWeightedWinner();
+      selectedItem = items[winningIndex];
 
-      isSpinning = true;
-      document.getElementById('spinBtnContainer').classList.add('hidden');
-      document.getElementById('spinningBadge').classList.remove('hidden');
+      const numSegments = items.length;
+      const segmentAngle = (2 * Math.PI) / numSegments;
+      const targetSegmentCenter = winningIndex * segmentAngle + (segmentAngle / 2);
+      const offset = (1.5 * Math.PI) - targetSegmentCenter;
+      const totalRotation = currentAngle + (6 * Math.PI) + offset;
 
-      const winningIndex = pickWeightedWinner();
-      selectedItem = items[winningIndex];
+      const startTime = performance.now();
 
-      const numSegments = items.length;
-      const segmentAngle = (2 * Math.PI) / numSegments;
-      const targetSegmentCenter = winningIndex * segmentAngle + (segmentAngle / 2);
-      const offset = (1.5 * Math.PI) - targetSegmentCenter;
-      const totalRotation = currentAngle + (6 * Math.PI) + offset;
+      function animateWheel(now) {
+        const elapsed = now - startTime;
+        const progress = Math.min(elapsed / spinDuration, 1);
+        const easeOut = 1 - Math.pow(1 - progress, 4);
 
-      const startTime = performance.now();
+        currentAngle = currentAngle + (totalRotation - currentAngle) * easeOut;
+        drawWheel();
 
-      function animateWheel(now) {
-        const elapsed = now - startTime;
-        const progress = Math.min(elapsed / spinDuration, 1);
-        const easeOut = 1 - Math.pow(1 - progress, 4);
+        if (progress < 1) {
+          requestAnimationFrame(animateWheel);
+        } else {
+          isSpinning = false;
+          document.getElementById('spinningBadge').classList.add('hidden');
 
-        currentAngle = currentAngle + (totalRotation - currentAngle) * easeOut;
-        drawWheel();
+          const spins = JSON.parse(localStorage.getItem('spin_history') || '[]');
+          spins.push(Date.now());
+          localStorage.setItem('spin_history', JSON.stringify(spins));
 
-        if (progress < 1) {
-          requestAnimationFrame(animateWheel);
-        } else {
-          isSpinning = false;
-          document.getElementById('spinningBadge').classList.add('hidden');
+          const titleWon = getItemTitle(selectedItem);
+          const lowerTitle = titleWon.toLowerCase().trim();
 
-          const spins = JSON.parse(localStorage.getItem('spin_history') || '[]');
-          spins.push(Date.now());
-          localStorage.setItem('spin_history', JSON.stringify(spins));
+          // Check if the result is "Try again"
+          if (lowerTitle.includes('try again') || lowerTitle.includes('no prize') || lowerTitle.includes('better luck')) {
+            isTryAgainOutcome = true;
+            document.getElementById('winEmoji').innerText = '😔';
+            document.getElementById('winHeading').innerText = 'Better Luck Next Time!';
+            document.getElementById('winHeading').className = 'text-2xl font-extrabold text-slate-300';
+            document.getElementById('winMessage').innerText = titleWon;
+            document.getElementById('winMessage').className = 'text-slate-400 font-bold text-xl';
+            document.getElementById('modalActionBtn').innerText = 'Close';
+            document.getElementById('modalActionBtn').className = 'w-full py-3 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-xl shadow-lg transition transform active:scale-95';
+          } else {
+            isTryAgainOutcome = false;
+            document.getElementById('winEmoji').innerText = '🎉';
+            document.getElementById('winHeading').innerText = 'Congratulations!';
+            document.getElementById('winHeading').className = 'text-2xl font-extrabold text-amber-300';
+            document.getElementById('winMessage').innerText = `You won a ${titleWon}!`;
+            document.getElementById('winMessage').className = 'text-emerald-400 font-bold text-xl';
+            document.getElementById('modalActionBtn').innerText = 'Claim Prize';
+            document.getElementById('modalActionBtn').className = 'w-full py-3 bg-indigo-600 hover:bg-indigo-500 font-bold rounded-xl shadow-lg transition text-white transform active:scale-95';
+          }
 
-          const titleWon = getItemTitle(selectedItem);
-          const lowerTitle = titleWon.toLowerCase().trim();
+          document.getElementById('winModal').classList.remove('hidden');
+        }
+      }
 
-          // Check if the result is "Try again"
-          if (lowerTitle.includes('try again') || lowerTitle.includes('no prize') || lowerTitle.includes('better luck')) {
-            isTryAgainOutcome = true;
-            document.getElementById('winEmoji').innerText = '😔';
-            document.getElementById('winHeading').innerText = 'Better Luck Next Time!';
-            document.getElementById('winHeading').className = 'text-2xl font-extrabold text-slate-300';
-            document.getElementById('winMessage').innerText = titleWon;
-            document.getElementById('winMessage').className = 'text-slate-400 font-bold text-xl';
-            document.getElementById('modalActionBtn').innerText = 'Close';
-            document.getElementById('modalActionBtn').className = 'w-full py-3 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-xl shadow-lg transition transform active:scale-95';
-          } else {
-            isTryAgainOutcome = false;
-            document.getElementById('winEmoji').innerText = '🎉';
-            document.getElementById('winHeading').innerText = 'Congratulations!';
-            document.getElementById('winHeading').className = 'text-2xl font-extrabold text-amber-300';
-            document.getElementById('winMessage').innerText = `You won a ${titleWon}!`;
-            document.getElementById('winMessage').className = 'text-emerald-400 font-bold text-xl';
-            document.getElementById('modalActionBtn').innerText = 'Claim Prize';
-            document.getElementById('modalActionBtn').className = 'w-full py-3 bg-indigo-600 hover:bg-indigo-500 font-bold rounded-xl shadow-lg transition text-white transform active:scale-95';
-          }
+      requestAnimationFrame(animateWheel);
+    }
 
-          document.getElementById('winModal').classList.remove('hidden');
-        }
-      }
+    function handleModalAction() {
+      if (isTryAgainOutcome) {
+        closeWinModal();
+      } else {
+        openClaimForm();
+      }
+    }
 
-      requestAnimationFrame(animateWheel);
-    }
+    function closeWinModal() {
+      document.getElementById('winModal').classList.add('hidden');
+      checkRateLimit();
+    }
 
-    function handleModalAction() {
-      if (isTryAgainOutcome) {
-        closeWinModal();
-      } else {
-        openClaimForm();
-      }
-    }
+    function closeClaimModal() {
+      document.getElementById('claimModal').classList.add('hidden');
+      checkRateLimit();
+    }
 
-    function closeWinModal() {
-      document.getElementById('winModal').classList.add('hidden');
-      checkRateLimit();
-    }
+    function openClaimForm() {
+      document.getElementById('winModal').classList.add('hidden');
+      
+      const container = document.getElementById('formFieldsContainer');
+      const inputStyle = "w-full px-3 py-2 bg-slate-100 text-slate-900 font-medium rounded border border-slate-300 focus:outline-none focus:bg-white focus:ring-2 focus:ring-indigo-500";
 
-    function closeClaimModal() {
-      document.getElementById('claimModal').classList.add('hidden');
-      checkRateLimit();
-    }
+      if (formFields.length === 0) {
+        container.innerHTML = `
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 uppercase mb-1">Full Name</label>
+            <input type="text" name="user_name" required class="${inputStyle}">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 uppercase mb-1">Email Address</label>
+            <input type="email" name="user_email" required class="${inputStyle}">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 uppercase mb-1">Phone Number</label>
+            <input type="tel" name="user_phone" required class="${inputStyle}">
+          </div>
+        `;
+      } else {
+        container.innerHTML = formFields.map(field => `
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 uppercase mb-1">${field.field_label}</label>
+            <input type="${field.field_type}" name="${field.field_name}" ${field.is_required ? 'required' : ''} class="${inputStyle}">
+          </div>
+        `).join('');
+      }
 
-    function openClaimForm() {
-      document.getElementById('winModal').classList.add('hidden');
-      
-      const container = document.getElementById('formFieldsContainer');
-      const inputStyle = "w-full px-3 py-2 bg-slate-100 text-slate-900 font-medium rounded border border-slate-300 focus:outline-none focus:bg-white focus:ring-2 focus:ring-indigo-500";
+      document.getElementById('claimModal').classList.remove('hidden');
+    }
 
-      if (formFields.length === 0) {
-        container.innerHTML = `
-          <div>
-            <label class="block text-xs font-semibold text-slate-300 uppercase mb-1">Full Name</label>
-            <input type="text" name="user_name" required class="${inputStyle}">
-          </div>
-          <div>
-            <label class="block text-xs font-semibold text-slate-300 uppercase mb-1">Email Address</label>
-            <input type="email" name="user_email" required class="${inputStyle}">
-          </div>
-          <div>
-            <label class="block text-xs font-semibold text-slate-300 uppercase mb-1">Phone Number</label>
-            <input type="tel" name="user_phone" required class="${inputStyle}">
-          </div>
-        `;
-      } else {
-        container.innerHTML = formFields.map(field => `
-          <div>
-            <label class="block text-xs font-semibold text-slate-300 uppercase mb-1">${field.field_label}</label>
-            <input type="${field.field_type}" name="${field.field_name}" ${field.is_required ? 'required' : ''} class="${inputStyle}">
-          </div>
-        `).join('');
-      }
+    async function handleClaimSubmit(e) {
+      e.preventDefault();
+      const formData = new FormData(e.target);
+      const titleWon = getItemTitle(selectedItem);
+      
+      const payload = {
+        gift_id: selectedItem?.id,
+        gift_label: titleWon,
+        user_name: formData.get('user_name') || formData.get('name') || 'User',
+        user_email: formData.get('user_email') || formData.get('email') || '',
+        user_phone: formData.get('user_phone') || formData.get('phone') || ''
+      };
 
-      document.getElementById('claimModal').classList.remove('hidden');
-    }
+      const res = await fetch('/api/claim', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
 
-    async function handleClaimSubmit(e) {
-      e.preventDefault();
-      const formData = new FormData(e.target);
-      const titleWon = getItemTitle(selectedItem);
-      
-      const payload = {
-        gift_id: selectedItem?.id,
-        gift_label: titleWon,
-        user_name: formData.get('user_name') || formData.get('name') || 'User',
-        user_email: formData.get('user_email') || formData.get('email') || '',
-        user_phone: formData.get('user_phone') || formData.get('phone') || ''
-      };
+      if (res.ok) {
+        alert('Claim recorded successfully!');
+        closeClaimModal();
+      } else {
+        alert('Failed to submit claim.');
+      }
+    }
 
-      const res = await fetch('/api/claim', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-
-      if (res.ok) {
-        alert('Claim recorded successfully!');
-        closeClaimModal();
-      } else {
-        alert('Failed to submit claim.');
-      }
-    }
-
-    initApp();
-  </script>
+    initApp();
+  </script>
 </body>
 </html>
