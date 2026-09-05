@@ -48,16 +48,19 @@ module.exports = async function handler(req, res) {
     // Resolve prize label name safely
     const resolvedLabel = gift_label || gift.name || gift.title || gift.label || gift.gift_name || 'Prize';
 
-    // 2. Insert winner into the database
+    // 2. Insert winner into Supabase matching exact table column names
     const winRes = await fetch(`${SUPABASE_URL}/rest/v1/winners`, {
       method: 'POST',
       headers,
       body: JSON.stringify({ 
         gift_id: gift_id, 
         gift_label: resolvedLabel,
-        name: user_name, 
-        email: user_email, 
-        phone: user_phone,
+        user_name: user_name, 
+        user_email: user_email, 
+        user_phone: user_phone,
+        name: user_name,       // Fallback in case table has both
+        email: user_email,     // Fallback
+        phone: user_phone,     // Fallback
         status: 'Claimed'
       })
     });
