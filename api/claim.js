@@ -1,55 +1,52 @@
-const { createClient } = require('@supabase/supabase-js');
-
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ success: false, error: 'Method not allowed' });
   }
 
   try {
-    const { gift_id, user_name, user_email, user_phone } = req.body;
+    const { gift_id, user_name, user_email, user_phone } = req.body || {};
 
     if (!gift_id || !user_name || !user_email) {
       return res.status(400).json({ success: false, error: 'Missing required fields.' });
     }
 
-    const supabaseUrl = process.env.SUPABASE_URL;
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const SUPABASE_URL = 'https://sikxwjgkkwxkcorejjiy.supabase.co';
+    const SUPABASE_SERVICE_ROLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpa3h3amdra3d4a2NvcmVqaml5Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4ODU5NDM0MSwiZXhwIjoyMTA0MTcwMzQxfQ.4KPdNr4vfGKw2t227SQTsJGTgwprJPCY8YfrLHEeYRY';
 
-    if (!supabaseUrl || !supabaseKey) {
-      return res.status(500).json({ success: false, error: 'Missing environment variables.' });
-    }
+    const headers = {
+      'apikey': SUPABASE_SERVICE_ROLE_KEY,
+      'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=representation'
+    };
 
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    // 1. Fetch gift stock
+    const giftRes = await fetch(`${SUPABASE_URL}/rest/v1/gifts?id=eq.${gift_id}&select=stock`, { headers });
+    const giftData = await giftRes.json();
+    const gift = giftData && giftData[0];
 
-    // 1. Check stock
-    const { data: gift, error: giftError } = await supabase
-      .from('gifts')
-      .select('stock')
-      .eq('id', gift_id)
-      .single();
-
-    if (giftError || !gift || gift.stock <= 0) {
+    if (!gift || gift.stock <= 0) {
       return res.status(400).json({ success: false, error: 'Item is out of stock.' });
     }
 
-    // 2. Insert winner record
-    const { error: winnerError } = await supabase
-      .from('winners')
-      .insert([{ gift_id, name: user_name, email: user_email, phone: user_phone }]);
+    // 2. Insert winner
+    const winRes = await fetch(`${SUPABASE_URL}/rest/v1/winners`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ gift_id, name: user_name, email: user_email, phone: user_phone })
+    });
 
-    if (winnerError) {
-      return res.status(500).json({ success: false, error: winnerError.message });
+    if (!winRes.ok) {
+      const errData = await winRes.json();
+      return res.status(500).json({ success: false, error: errData });
     }
 
-    // 3. Decrement inventory stock by 1
-    const { error: updateError } = await supabase
-      .from('gifts')
-      .update({ stock: gift.stock - 1 })
-      .eq('id', gift_id);
-
-    if (updateError) {
-      return res.status(500).json({ success: false, error: updateError.message });
-    }
+    // 3. Decrement stock
+    await fetch(`${SUPABASE_URL}/rest/v1/gifts?id=eq.${gift_id}`, {
+      method: 'PATCH',
+      headers,
+      body: JSON.stringify({ stock: gift.stock - 1 })
+    });
 
     return res.status(200).json({ success: true, message: 'Claim submitted successfully!' });
   } catch (err) {
